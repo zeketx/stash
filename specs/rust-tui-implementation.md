@@ -46,7 +46,48 @@ Transform the current Python-based YouTube downloader into a beautiful, modern t
 
 ---
 
-## Feature Requirements
+## Implementation Phases
+
+This specification is broken down into 5 detailed phases:
+
+1. **[Phase 1: Foundation (MVP)](phase-01-foundation.md)** - Week 1
+   - Project setup with comprehensive logging
+   - Basic CLI interface
+   - yt-dlp integration
+   - Progress visualization
+   - Error handling
+
+2. **[Phase 2: Beautiful TUI](phase-02-beautiful-tui.md)** - Weeks 2-3
+   - Ratatui setup and screens
+   - Welcome, URL input, format selection screens
+   - Download progress and success/error screens
+   - Application state machine
+
+3. **[Phase 3: Advanced Features](phase-03-advanced-features.md)** - Week 4
+   - Batch downloads with concurrency
+   - Configuration file support
+   - Download history tracking
+   - Playlist support
+   - Clipboard integration
+
+4. **[Phase 4: Polish & UX](phase-04-polish-ux.md)** - Week 5
+   - Themes and color schemes
+   - Animations and loading spinners
+   - Keyboard shortcuts system
+   - Help system and examples
+   - Settings screen
+   - Desktop notifications
+
+5. **[Phase 5: Distribution](phase-05-distribution.md)** - Week 6
+   - Cross-platform compilation
+   - GitHub Actions CI/CD
+   - Installation methods (Cargo, Homebrew, direct)
+   - Shell completions
+   - Documentation and release
+
+---
+
+## Phase Overview
 
 ### Phase 1: Foundation (MVP)
 
