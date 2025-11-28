@@ -26,11 +26,11 @@ pub struct Cli {
     pub playlist: bool,
 
     /// Show video information without downloading
-    #[arg(short, long)]
+    #[arg(long)]
     pub info: bool,
 
     /// Launch TUI mode
-    #[arg(long)]
+    #[arg(short, long)]
     pub interactive: bool,
 
     /// Batch download from file

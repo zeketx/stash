@@ -37,6 +37,7 @@ directories = "5.0"
 # Terminal utilities
 colored = "2.1"
 crossterm = "0.28"
+ratatui = "0.28"
 
 # URL parsing and validation
 url = "2.5"

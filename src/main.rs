@@ -3,6 +3,8 @@ mod config;
 mod downloader;
 mod error;
 mod logger;
+mod tui;
+mod ui;
 mod utils;
 
 use crate::cli::{Cli, Commands};
@@ -108,10 +110,8 @@ async fn run() -> Result<()> {
 
     // Handle interactive mode
     if cli.interactive {
-        error!("Interactive TUI mode not yet implemented");
-        return Err(error::YtdlError::Other(
-            "TUI mode coming in Phase 2".to_string(),
-        ));
+        info!("Starting interactive TUI mode");
+        return tui::run_tui().await;
     }
 
     // Handle batch download
