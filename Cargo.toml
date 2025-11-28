@@ -46,7 +46,13 @@ url = "2.5"
 regex = "1.10"
 
 # Date/time utilities
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
+
+# Clipboard integration
+arboard = "3.4"
+
+# Async utilities for concurrent downloads
+futures = "0.3"
 
 [dev-dependencies]
 mockall = "0.13"

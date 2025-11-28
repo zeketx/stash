@@ -12,6 +12,17 @@ pub struct Config {
     pub log_level: String,
     pub enable_file_logging: bool,
     pub enable_json_logging: bool,
+    pub concurrent_downloads: Option<usize>,
+    pub audio_format: Option<String>,
+    pub audio_quality: Option<u32>,
+    pub theme: Option<String>,
+    pub show_animations: Option<bool>,
+    pub confirm_before_download: Option<bool>,
+    pub rate_limit: Option<String>,
+    pub retries: Option<u32>,
+    pub timeout: Option<u64>,
+    pub use_cookies: Option<bool>,
+    pub skip_duplicates: Option<bool>,
 }
 
 impl Default for Config {
@@ -23,6 +34,17 @@ impl Default for Config {
             log_level: "info".to_string(),
             enable_file_logging: false,
             enable_json_logging: false,
+            concurrent_downloads: Some(3),
+            audio_format: Some("mp3".to_string()),
+            audio_quality: Some(192),
+            theme: Some("dark".to_string()),
+            show_animations: Some(true),
+            confirm_before_download: Some(false),
+            rate_limit: None,
+            retries: Some(3),
+            timeout: Some(300),
+            use_cookies: Some(false),
+            skip_duplicates: Some(true),
         }
     }
 }
@@ -106,6 +128,8 @@ impl Config {
         info!("  Log level: {}", self.log_level);
         info!("  File logging: {}", self.enable_file_logging);
         info!("  JSON logging: {}", self.enable_json_logging);
+        info!("  Concurrent downloads: {:?}", self.concurrent_downloads);
+        info!("  Skip duplicates: {:?}", self.skip_duplicates);
     }
 }
 

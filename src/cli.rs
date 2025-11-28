@@ -37,6 +37,34 @@ pub struct Cli {
     #[arg(short, long)]
     pub batch: Option<PathBuf>,
 
+    /// Number of concurrent downloads for batch mode
+    #[arg(long, default_value = "3")]
+    pub concurrent: usize,
+
+    /// Stop batch download on first error
+    #[arg(long)]
+    pub stop_on_error: bool,
+
+    /// Use URL from clipboard
+    #[arg(long)]
+    pub clipboard: bool,
+
+    /// Watch clipboard for URLs and auto-download
+    #[arg(long)]
+    pub watch: bool,
+
+    /// Download specific playlist videos by range (e.g., 1-10)
+    #[arg(long)]
+    pub range: Option<String>,
+
+    /// Custom folder name for playlist downloads
+    #[arg(long)]
+    pub folder: Option<String>,
+
+    /// Resume incomplete downloads
+    #[arg(long)]
+    pub resume: bool,
+
     /// Verbose logging (-v: DEBUG, -vv: TRACE)
     #[arg(short, long, action = clap::ArgAction::Count)]
     pub verbose: u8,
@@ -67,10 +95,26 @@ pub enum Commands {
     Config,
 
     /// Show download history
-    History,
+    History {
+        /// Number of recent entries to show
+        #[arg(short, long, default_value = "10")]
+        limit: usize,
+
+        /// Search history by keyword
+        #[arg(short, long)]
+        search: Option<String>,
+
+        /// Export history to CSV file
+        #[arg(short, long)]
+        export: Option<PathBuf>,
+    },
 
     /// Clear download history
-    ClearHistory,
+    ClearHistory {
+        /// Clear entries older than N days
+        #[arg(long)]
+        older_than: Option<i64>,
+    },
 
     /// Generate shell completions
     Completions {

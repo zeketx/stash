@@ -45,72 +45,29 @@ impl Downloader {
         }
     }
 
-    pub async fn fetch_video_info(&self, url: &str) -> Result<VideoInfo> {
-        info!("Fetching video information for: {}", url);
+    pub fn check_partial_download(&self, _url: &str) -> Option<PathBuf> {
+        let entries = std::fs::read_dir(&self.output_dir).ok()?;
 
-        let output = TokioCommand::new("yt-dlp")
-            .args(&["--dump-json", "--no-playlist", url])
-            .output()
-            .await
-            .map_err(|e| YtdlError::YtdlpFailed(format!("Failed to execute yt-dlp: {}", e)))?;
-
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            error!("yt-dlp failed: {}", stderr);
-            return Err(YtdlError::YtdlpFailed(stderr.to_string()));
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if let Some(ext) = path.extension() {
+                if ext == "part" {
+                    debug!("Found partial download: {:?}", path);
+                    return Some(path);
+                }
+            }
         }
 
-        let json_str = String::from_utf8_lossy(&output.stdout);
-        trace!("yt-dlp JSON output: {}", json_str);
-
-        let json_value: serde_json::Value = serde_json::from_str(&json_str)?;
-
-        let formats = if let Some(formats_array) = json_value["formats"].as_array() {
-            formats_array
-                .iter()
-                .filter_map(|f| {
-                    Some(Format {
-                        format_id: f["format_id"].as_str()?.to_string(),
-                        ext: f["ext"].as_str()?.to_string(),
-                        resolution: f["resolution"].as_str().map(|s| s.to_string()),
-                        fps: f["fps"].as_u64().map(|v| v as u32),
-                        filesize: f["filesize"].as_u64(),
-                        vcodec: f["vcodec"].as_str().map(|s| s.to_string()),
-                        acodec: f["acodec"].as_str().map(|s| s.to_string()),
-                    })
-                })
-                .collect()
-        } else {
-            Vec::new()
-        };
-
-        let info = VideoInfo {
-            id: json_value["id"]
-                .as_str()
-                .unwrap_or("unknown")
-                .to_string(),
-            title: json_value["title"]
-                .as_str()
-                .unwrap_or("Unknown Title")
-                .to_string(),
-            uploader: json_value["uploader"]
-                .as_str()
-                .unwrap_or("Unknown")
-                .to_string(),
-            duration: json_value["duration"].as_u64(),
-            view_count: json_value["view_count"].as_u64(),
-            upload_date: json_value["upload_date"].as_str().map(|s| s.to_string()),
-            description: json_value["description"].as_str().map(|s| s.to_string()),
-            thumbnail: json_value["thumbnail"].as_str().map(|s| s.to_string()),
-            formats,
-        };
-
-        debug!("Fetched video info: {:?}", info);
-        Ok(info)
+        None
     }
 
-    pub async fn download(&self, url: &str, audio_only: bool) -> Result<PathBuf> {
-        info!("Starting download: {} (audio_only: {})", url, audio_only);
+    pub async fn resume_download(&self, url: &str, audio_only: bool) -> Result<PathBuf> {
+        info!("Attempting to resume download for: {}", url);
+        self.download_with_resume(url, audio_only, true).await
+    }
+
+    async fn download_with_resume(&self, url: &str, audio_only: bool, continue_download: bool) -> Result<PathBuf> {
+        info!("Starting download: {} (audio_only: {}, resume: {})", url, audio_only, continue_download);
 
         std::fs::create_dir_all(&self.output_dir)?;
 
@@ -120,6 +77,11 @@ impl Downloader {
             "--progress".to_string(),
             "--newline".to_string(),
         ];
+
+        if continue_download {
+            args.push("--continue".to_string());
+            info!("Resume mode enabled");
+        }
 
         if audio_only {
             args.extend_from_slice(&[
@@ -225,6 +187,74 @@ impl Downloader {
 
         info!("Download completed successfully");
         Ok(self.output_dir.clone())
+    }
+
+    pub async fn fetch_video_info(&self, url: &str) -> Result<VideoInfo> {
+        info!("Fetching video information for: {}", url);
+
+        let output = TokioCommand::new("yt-dlp")
+            .args(&["--dump-json", "--no-playlist", url])
+            .output()
+            .await
+            .map_err(|e| YtdlError::YtdlpFailed(format!("Failed to execute yt-dlp: {}", e)))?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            error!("yt-dlp failed: {}", stderr);
+            return Err(YtdlError::YtdlpFailed(stderr.to_string()));
+        }
+
+        let json_str = String::from_utf8_lossy(&output.stdout);
+        trace!("yt-dlp JSON output: {}", json_str);
+
+        let json_value: serde_json::Value = serde_json::from_str(&json_str)?;
+
+        let formats = if let Some(formats_array) = json_value["formats"].as_array() {
+            formats_array
+                .iter()
+                .filter_map(|f| {
+                    Some(Format {
+                        format_id: f["format_id"].as_str()?.to_string(),
+                        ext: f["ext"].as_str()?.to_string(),
+                        resolution: f["resolution"].as_str().map(|s| s.to_string()),
+                        fps: f["fps"].as_u64().map(|v| v as u32),
+                        filesize: f["filesize"].as_u64(),
+                        vcodec: f["vcodec"].as_str().map(|s| s.to_string()),
+                        acodec: f["acodec"].as_str().map(|s| s.to_string()),
+                    })
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
+
+        let info = VideoInfo {
+            id: json_value["id"]
+                .as_str()
+                .unwrap_or("unknown")
+                .to_string(),
+            title: json_value["title"]
+                .as_str()
+                .unwrap_or("Unknown Title")
+                .to_string(),
+            uploader: json_value["uploader"]
+                .as_str()
+                .unwrap_or("Unknown")
+                .to_string(),
+            duration: json_value["duration"].as_u64(),
+            view_count: json_value["view_count"].as_u64(),
+            upload_date: json_value["upload_date"].as_str().map(|s| s.to_string()),
+            description: json_value["description"].as_str().map(|s| s.to_string()),
+            thumbnail: json_value["thumbnail"].as_str().map(|s| s.to_string()),
+            formats,
+        };
+
+        debug!("Fetched video info: {:?}", info);
+        Ok(info)
+    }
+
+    pub async fn download(&self, url: &str, audio_only: bool) -> Result<PathBuf> {
+        self.download_with_resume(url, audio_only, false).await
     }
 
     pub fn list_formats(&self, info: &VideoInfo) {
