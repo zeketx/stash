@@ -4,7 +4,7 @@ use crate::ui::{
     events::{is_back_key, is_quit_key, Event, EventHandler},
     screens::{
         render_downloading, render_error, render_fetching, render_format_selection,
-        render_success, render_url_input, render_welcome,
+        render_help, render_settings, render_success, render_url_input, render_welcome,
     },
     terminal::{restore_terminal, setup_panic_hook, setup_terminal},
 };
@@ -125,6 +125,12 @@ fn render(app: &mut App, frame: &mut ratatui::Frame) {
         } => {
             render_error(frame, &app.theme, error_type, message, suggestions);
         }
+        AppState::Help { .. } => {
+            render_help(frame, &app.theme);
+        }
+        AppState::Settings { settings, .. } => {
+            render_settings(frame, &app.theme, settings, settings.selected_index);
+        }
     }
 }
 
@@ -137,27 +143,25 @@ async fn handle_event(app: &mut App, event: Event) -> Result<()> {
                 return Ok(());
             }
 
+            // Global help key (h or ?)
+            if matches!(key.code, KeyCode::Char('h') | KeyCode::Char('?')) && key.modifiers.is_empty() {
+                // Don't open help if already in help or settings
+                if !matches!(app.state, AppState::Help { .. } | AppState::Settings { .. }) {
+                    app.go_to_help();
+                    return Ok(());
+                }
+            }
+
             // State-specific key handling
             match &app.state {
                 AppState::Welcome => {
                     match key.code {
                         KeyCode::Enter => app.go_to_url_input(),
                         KeyCode::Char('s') | KeyCode::Char('S') => {
-                            // Settings not implemented yet
-                            app.go_to_error(
-                                "Not Implemented".to_string(),
-                                "Settings screen is not yet implemented".to_string(),
-                                vec!["This feature will be available in a future update"
-                                    .to_string()],
-                            );
-                        }
-                        KeyCode::Char('h') | KeyCode::Char('H') => {
-                            // Help not implemented yet
-                            app.go_to_error(
-                                "Not Implemented".to_string(),
-                                "Help screen is not yet implemented".to_string(),
-                                vec!["This feature will be available in a future update"
-                                    .to_string()],
+                            app.go_to_settings(
+                                "./downloads".to_string(),
+                                "best".to_string(),
+                                3,
                             );
                         }
                         _ => {}
@@ -258,6 +262,25 @@ async fn handle_event(app: &mut App, event: Event) -> Result<()> {
                         _ => {}
                     }
                 }
+                AppState::Help { .. } => {
+                    if is_back_key(key) {
+                        app.back_from_overlay();
+                    }
+                }
+                AppState::Settings { .. } => {
+                    match key.code {
+                        KeyCode::Up => app.select_previous_setting(),
+                        KeyCode::Down => app.select_next_setting(),
+                        KeyCode::Enter => {
+                            // TODO: Edit selected setting
+                            info!("Edit setting selected");
+                        }
+                        KeyCode::Esc => {
+                            app.back_from_overlay();
+                        }
+                        _ => {}
+                    }
+                }
             }
         }
         Event::Resize(_, _) => {
@@ -265,6 +288,7 @@ async fn handle_event(app: &mut App, event: Event) -> Result<()> {
         }
         Event::Tick => {
             // Regular tick for animations and updates
+            app.tick();
         }
     }
 

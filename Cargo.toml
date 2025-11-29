@@ -54,6 +54,9 @@ arboard = "3.4"
 # Async utilities for concurrent downloads
 futures = "0.3"
 
+# Desktop notifications (macOS, Linux, Windows)
+notify-rust = "4.11"
+
 [dev-dependencies]
 mockall = "0.13"
 tempfile = "3.12"

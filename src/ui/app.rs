@@ -1,4 +1,6 @@
+use crate::ui::screens::SettingsState;
 use crate::ui::theme::Theme;
+use crate::ui::widgets::{BlinkingCursor, CheckmarkAnimation, Spinner};
 use chrono::{DateTime, Local};
 use std::path::PathBuf;
 
@@ -77,6 +79,14 @@ pub enum AppState {
         message: String,
         suggestions: Vec<String>,
         last_url: Option<String>,
+        retry_count: usize,
+    },
+    Help {
+        previous_state: Box<AppState>,
+    },
+    Settings {
+        settings: SettingsState,
+        previous_state: Box<AppState>,
     },
 }
 
@@ -84,6 +94,9 @@ pub struct App {
     pub state: AppState,
     pub theme: Theme,
     pub should_quit: bool,
+    pub spinner: Spinner,
+    pub cursor: BlinkingCursor,
+    pub checkmark: CheckmarkAnimation,
 }
 
 impl App {
@@ -92,7 +105,17 @@ impl App {
             state: AppState::Welcome,
             theme: Theme::default(),
             should_quit: false,
+            spinner: Spinner::new(),
+            cursor: BlinkingCursor::new(),
+            checkmark: CheckmarkAnimation::new(),
         }
+    }
+
+    /// Update animations (should be called on tick)
+    pub fn tick(&mut self) {
+        self.spinner.tick();
+        self.cursor.tick();
+        self.checkmark.tick();
     }
 
     pub fn quit(&mut self) {
@@ -126,7 +149,51 @@ impl App {
             message,
             suggestions,
             last_url,
+            retry_count: 0,
         };
+    }
+
+    pub fn go_to_help(&mut self) {
+        let previous = Box::new(self.state.clone());
+        self.state = AppState::Help {
+            previous_state: previous,
+        };
+    }
+
+    pub fn go_to_settings(&mut self, output_dir: String, quality: String, concurrent: usize) {
+        let previous = Box::new(self.state.clone());
+        self.state = AppState::Settings {
+            settings: SettingsState::new(output_dir, quality, concurrent),
+            previous_state: previous,
+        };
+    }
+
+    pub fn back_from_overlay(&mut self) {
+        match &self.state {
+            AppState::Help { previous_state } => {
+                self.state = (**previous_state).clone();
+            }
+            AppState::Settings { previous_state, .. } => {
+                self.state = (**previous_state).clone();
+            }
+            _ => {}
+        }
+    }
+
+    pub fn select_next_setting(&mut self) {
+        if let AppState::Settings { ref mut settings, .. } = self.state {
+            if settings.selected_index < 4 {
+                settings.selected_index += 1;
+            }
+        }
+    }
+
+    pub fn select_previous_setting(&mut self) {
+        if let AppState::Settings { ref mut settings, .. } = self.state {
+            if settings.selected_index > 0 {
+                settings.selected_index -= 1;
+            }
+        }
     }
 
     pub fn update_input(&mut self, input: String, cursor_pos: usize) {

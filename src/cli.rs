@@ -85,6 +85,10 @@ pub struct Cli {
     #[arg(long)]
     pub config: Option<PathBuf>,
 
+    /// Show common usage examples
+    #[arg(long)]
+    pub examples: bool,
+
     #[command(subcommand)]
     pub command: Option<Commands>,
 }

@@ -6,6 +6,7 @@ mod downloader;
 mod error;
 mod history;
 mod logger;
+mod notifications;
 mod playlist;
 mod tui;
 mod ui;
@@ -36,6 +37,12 @@ async fn main() {
 
 async fn run() -> Result<()> {
     let cli = Cli::parse();
+
+    // Handle --examples flag
+    if cli.examples {
+        print_examples();
+        return Ok(());
+    }
 
     // Initialize logging first
     let log_level = if cli.quiet {
@@ -421,4 +428,81 @@ async fn handle_subcommand(command: Commands, config: &Config, history: &mut His
             ))
         }
     }
+}
+
+fn print_examples() {
+    println!("{}", "Common Usage Examples:".green().bold());
+    println!("{}", "=".repeat(80));
+    println!();
+
+    println!("{}", "Basic Downloads:".cyan().bold());
+    println!("  {} ytdl \"https://youtube.com/watch?v=VIDEO_ID\"", "$".yellow());
+    println!("    Download a single video in best quality");
+    println!();
+    println!("  {} ytdl -a \"https://youtube.com/watch?v=VIDEO_ID\"", "$".yellow());
+    println!("    Download audio only as MP3");
+    println!();
+    println!("  {} ytdl -q 720 \"https://youtube.com/watch?v=VIDEO_ID\"", "$".yellow());
+    println!("    Download video in 720p quality");
+    println!();
+
+    println!("{}", "Interactive Mode:".cyan().bold());
+    println!("  {} ytdl -i", "$".yellow());
+    println!("    Launch interactive TUI mode with visual interface");
+    println!();
+
+    println!("{}", "Playlists:".cyan().bold());
+    println!("  {} ytdl -p \"https://youtube.com/playlist?list=PLAYLIST_ID\"", "$".yellow());
+    println!("    Download entire playlist");
+    println!();
+    println!("  {} ytdl --range 1-5 \"https://youtube.com/playlist?list=PLAYLIST_ID\"", "$".yellow());
+    println!("    Download videos 1-5 from playlist");
+    println!();
+
+    println!("{}", "Batch Downloads:".cyan().bold());
+    println!("  {} ytdl -b urls.txt", "$".yellow());
+    println!("    Download all URLs from file (one per line)");
+    println!();
+    println!("  {} ytdl -b urls.txt --concurrent 5", "$".yellow());
+    println!("    Download with 5 concurrent downloads");
+    println!();
+
+    println!("{}", "Clipboard:".cyan().bold());
+    println!("  {} ytdl --clipboard", "$".yellow());
+    println!("    Download URL from clipboard");
+    println!();
+    println!("  {} ytdl --watch", "$".yellow());
+    println!("    Watch clipboard and auto-download URLs");
+    println!();
+
+    println!("{}", "History:".cyan().bold());
+    println!("  {} ytdl history", "$".yellow());
+    println!("    Show recent downloads");
+    println!();
+    println!("  {} ytdl history --search \"keyword\"", "$".yellow());
+    println!("    Search download history");
+    println!();
+    println!("  {} ytdl history --export history.csv", "$".yellow());
+    println!("    Export history to CSV file");
+    println!();
+
+    println!("{}", "Configuration:".cyan().bold());
+    println!("  {} ytdl config", "$".yellow());
+    println!("    Show current configuration");
+    println!();
+    println!("  {} ytdl -o ~/Videos \"URL\"", "$".yellow());
+    println!("    Download to specific directory");
+    println!();
+
+    println!("{}", "Logging:".cyan().bold());
+    println!("  {} ytdl -v \"URL\"", "$".yellow());
+    println!("    Enable verbose logging (DEBUG level)");
+    println!();
+    println!("  {} ytdl --log-file \"URL\"", "$".yellow());
+    println!("    Enable file logging to ~/.ytdl/logs/");
+    println!();
+
+    println!("{}", "For more information, use:".green().bold());
+    println!("  {} ytdl --help", "$".yellow());
+    println!();
 }
