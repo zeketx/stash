@@ -56,6 +56,10 @@ pub fn render_help(frame: &mut Frame, theme: &Theme) {
             Span::raw(" - Show this help screen"),
         ]),
         Line::from(vec![
+            Span::styled("  Note:", Style::default().fg(theme.secondary)),
+            Span::raw(" Help key disabled in URL input to allow typing"),
+        ]),
+        Line::from(vec![
             Span::styled("Esc", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
             Span::raw(" - Go back/Cancel"),
         ]),

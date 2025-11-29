@@ -143,10 +143,10 @@ async fn handle_event(app: &mut App, event: Event) -> Result<()> {
                 return Ok(());
             }
 
-            // Global help key (h or ?)
+            // Global help key (h or ?) - but NOT in URL input where user might be typing
             if matches!(key.code, KeyCode::Char('h') | KeyCode::Char('?')) && key.modifiers.is_empty() {
-                // Don't open help if already in help or settings
-                if !matches!(app.state, AppState::Help { .. } | AppState::Settings { .. }) {
+                // Don't open help if already in help, settings, or URL input
+                if !matches!(app.state, AppState::Help { .. } | AppState::Settings { .. } | AppState::UrlInput { .. }) {
                     app.go_to_help();
                     return Ok(());
                 }
