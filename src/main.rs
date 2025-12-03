@@ -1,6 +1,7 @@
 mod batch;
 mod clipboard;
 mod cli;
+mod commands;
 mod config;
 mod downloader;
 mod error;
@@ -15,10 +16,13 @@ mod utils;
 use crate::batch::BatchDownloader;
 use crate::cli::{Cli, Commands};
 use crate::clipboard::{get_clipboard_url, ClipboardWatcher};
+use crate::commands::{
+    download_single_url, handle_clear_history_command, handle_config_command,
+    handle_history_command, handle_playlist_download, show_video_info,
+};
 use crate::config::{CliConfig, Config};
-use crate::downloader::Downloader;
 use crate::error::Result;
-use crate::history::{History, HistoryEntry};
+use crate::history::History;
 use crate::logger::{init_logger, level_from_verbosity, LoggerConfig};
 use crate::playlist::PlaylistDownloader;
 use crate::utils::{check_ffmpeg, check_ytdlp, validate_youtube_url};
@@ -226,286 +230,24 @@ async fn run() -> Result<()> {
     }
 }
 
-async fn show_video_info(url: &str, config: &Config) -> Result<()> {
-    let downloader = Downloader::new(config.output_dir.clone(), config.quality.clone());
+// Moved to commands::info module
 
-    println!("\n{}", "Fetching video information...".green().bold());
-    let video_info = downloader.fetch_video_info(url).await?;
+// Moved to commands::download module
 
-    println!("\n{}", "Video Information:".green().bold());
-    println!("{}", "=".repeat(80));
-    println!("Title: {}", video_info.title);
-    println!("Uploader: {}", video_info.uploader);
+// Moved to commands::playlist module
 
-    if let Some(duration) = video_info.duration {
-        let hours = duration / 3600;
-        let minutes = (duration % 3600) / 60;
-        let seconds = duration % 60;
-        if hours > 0 {
-            println!("Duration: {}:{:02}:{:02}", hours, minutes, seconds);
-        } else {
-            println!("Duration: {}:{:02}", minutes, seconds);
-        }
-    }
-
-    if let Some(view_count) = video_info.view_count {
-        println!("Views: {}", view_count.to_string().as_bytes()
-            .rchunks(3)
-            .rev()
-            .map(std::str::from_utf8)
-            .collect::<std::result::Result<Vec<&str>, _>>()
-            .unwrap()
-            .join(","));
-    }
-
-    if let Some(upload_date) = video_info.upload_date {
-        println!("Upload Date: {}", upload_date);
-    }
-
-    if let Some(description) = video_info.description {
-        let desc_preview = if description.len() > 200 {
-            format!("{}...", &description[..200])
-        } else {
-            description
-        };
-        println!("\nDescription:");
-        println!("{}", desc_preview);
-    }
-
-    println!("\n{}", "Available Formats:".cyan().bold());
-    println!("{}", "-".repeat(80));
-
-    let mut video_formats: Vec<_> = video_info.formats.iter()
-        .filter(|f| f.vcodec.as_ref().map(|v| v != "none").unwrap_or(false))
-        .collect();
-    video_formats.sort_by(|a, b| {
-        b.resolution.as_ref()
-            .and_then(|r| r.split('x').nth(1))
-            .and_then(|h| h.parse::<u32>().ok())
-            .unwrap_or(0)
-            .cmp(&a.resolution.as_ref()
-                .and_then(|r| r.split('x').nth(1))
-                .and_then(|h| h.parse::<u32>().ok())
-                .unwrap_or(0))
-    });
-
-    for (i, format) in video_formats.iter().take(10).enumerate() {
-        let res = format.resolution.as_ref().map(|s| s.as_str()).unwrap_or("unknown");
-        let fps = format.fps.map(|f| format!("{}fps", f)).unwrap_or_else(|| "".to_string());
-        let size = format.filesize.map(|s| format!("{:.1} MB", s as f64 / 1_000_000.0))
-            .unwrap_or_else(|| "unknown size".to_string());
-        println!("  {}. {} {} - {} ({})", i + 1, res, fps, size, format.ext);
-    }
-
-    println!("\n{}", "To download, run:".yellow().bold());
-    println!("  ytdl \"{}\"", url);
-
-    Ok(())
-}
-
-async fn download_single_url(url: &str, config: &Config, history: &mut History, resume: bool) -> Result<()> {
-    let downloader = Downloader::new(config.output_dir.clone(), config.quality.clone());
-
-    if history.contains_url(url) {
-        warn!("URL already downloaded");
-        if let Some(entry) = history.get_entry_by_url(url) {
-            println!("\n{} This URL was already downloaded:", "⚠".yellow().bold());
-            println!("  Title: {}", entry.title);
-            println!("  Date: {}", entry.timestamp.format("%Y-%m-%d %H:%M:%S"));
-            println!("  Path: {:?}", entry.file_path);
-        }
-
-        if !resume {
-            println!("\nUse --resume to re-download");
-            return Ok(());
-        }
-    }
-
-    println!("\n{}", "Starting download...".green().bold());
-
-    let output_path = if resume {
-        downloader.resume_download(url, config.audio_only).await?
-    } else {
-        downloader.download(url, config.audio_only).await?
-    };
-
-    println!(
-        "\n{} Downloaded to: {}",
-        "✓".green().bold(),
-        output_path.display()
-    );
-
-    let video_info = downloader.fetch_video_info(url).await.ok();
-    let title = video_info
-        .as_ref()
-        .map(|v| v.title.clone())
-        .unwrap_or_else(|| url.to_string());
-
-    let file_size = tokio::fs::metadata(&output_path)
-        .await
-        .map(|m| m.len())
-        .unwrap_or(0);
-
-    let entry = HistoryEntry::new(
-        url.to_string(),
-        title,
-        output_path,
-        file_size,
-        config.quality.clone(),
-        if config.audio_only {
-            "mp3".to_string()
-        } else {
-            "mp4".to_string()
-        },
-    );
-
-    history.add_entry(entry);
-    history.save()?;
-
-    Ok(())
-}
-
-async fn handle_playlist_download(
-    url: &str,
-    config: &Config,
-    range: Option<&str>,
-    folder: Option<&str>,
-) -> Result<()> {
-    let mut playlist_downloader = PlaylistDownloader::new(config.output_dir.clone(), config.quality.clone());
-
-    if let Some(folder_name) = folder {
-        playlist_downloader = playlist_downloader.with_folder(folder_name.to_string());
-    }
-
-    if let Some(range_str) = range {
-        let parts: Vec<&str> = range_str.split('-').collect();
-        if parts.len() == 2 {
-            let start: usize = parts[0].parse().map_err(|_| {
-                error::YtdlError::Config("Invalid range format".to_string())
-            })?;
-            let end: usize = parts[1].parse().map_err(|_| {
-                error::YtdlError::Config("Invalid range format".to_string())
-            })?;
-
-            println!("\n{}", "Downloading playlist videos...".green().bold());
-            let paths = playlist_downloader
-                .download_range(url, start, end, config.audio_only)
-                .await?;
-
-            println!(
-                "\n{} Downloaded {} videos from playlist",
-                "✓".green().bold(),
-                paths.len()
-            );
-        } else {
-            return Err(error::YtdlError::Config(
-                "Invalid range format. Use: --range 1-10".to_string(),
-            ));
-        }
-    } else {
-        let playlist_info = playlist_downloader.fetch_playlist_info(url).await?;
-
-        println!("\n{}", "Playlist Information:".green().bold());
-        println!("{}", "=".repeat(80));
-        println!("Title: {}", playlist_info.title);
-        if let Some(ref uploader) = playlist_info.uploader {
-            println!("Uploader: {}", uploader);
-        }
-        println!("Videos: {}", playlist_info.video_count);
-
-        println!("\n{}", "Downloading all videos...".green().bold());
-        let paths = playlist_downloader
-            .download_playlist(&playlist_info, config.audio_only)
-            .await?;
-
-        println!(
-            "\n{} Downloaded {} of {} videos",
-            "✓".green().bold(),
-            paths.len(),
-            playlist_info.video_count
-        );
-    }
-
-    Ok(())
-}
-
-async fn handle_subcommand(command: Commands, config: &Config, history: &mut History) -> Result<()> {
+async fn handle_subcommand(command: Commands, _config: &Config, history: &mut History) -> Result<()> {
     match command {
-        Commands::Config => {
-            println!("\n{}", "Current Configuration:".green().bold());
-            println!("{}", "=".repeat(80));
-            println!("Output Directory: {:?}", config.output_dir);
-            println!("Quality: {}", config.quality);
-            println!("Audio Only: {}", config.audio_only);
-            println!("Log Level: {}", config.log_level);
-            println!("File Logging: {}", config.enable_file_logging);
-            println!("JSON Logging: {}", config.enable_json_logging);
-            println!("Concurrent Downloads: {:?}", config.concurrent_downloads);
-            println!("Skip Duplicates: {:?}", config.skip_duplicates);
-
-            if let Some(path) = Config::get_default_config_path() {
-                println!("\nDefault config path: {:?}", path);
-            }
-
-            if let Some(path) = History::get_history_file_path() {
-                println!("History file path: {:?}", path);
-            }
-
-            Ok(())
-        }
+        Commands::Config => handle_config_command().await,
         Commands::History { limit, search, export } => {
-            if let Some(export_path) = export {
-                history.export_to_csv(&export_path)?;
-                println!("{} Exported history to: {:?}", "✓".green().bold(), export_path);
-                return Ok(());
-            }
-
-            let entries = if let Some(query) = search {
-                history.search(&query)
-            } else {
-                history.get_recent(limit)
-            };
-
-            if entries.is_empty() {
-                println!("\n{}", "No history entries found".yellow());
-                return Ok(());
-            }
-
-            println!("\n{}", "Download History:".green().bold());
-            println!("{}", "=".repeat(80));
-
-            for entry in entries {
-                println!("\nTitle: {}", entry.title);
-                println!("URL: {}", entry.url);
-                println!("Date: {}", entry.timestamp.format("%Y-%m-%d %H:%M:%S"));
-                println!("Size: {} bytes", entry.file_size);
-                println!("Quality: {} ({})", entry.quality, entry.format);
-                println!("Path: {:?}", entry.file_path);
-            }
-
-            println!("\nTotal entries: {}", history.len());
-
-            Ok(())
+            handle_history_command(history, limit, search, export).await
         }
         Commands::ClearHistory { older_than } => {
-            if let Some(days) = older_than {
-                history.clear_older_than(days);
-                println!(
-                    "{} Cleared history entries older than {} days",
-                    "✓".green().bold(),
-                    days
-                );
-            } else {
-                history.clear();
-                println!("{} Cleared all history", "✓".green().bold());
-            }
-
-            history.save()?;
-            Ok(())
+            handle_clear_history_command(history, older_than).await
         }
         Commands::Completions { shell: _ } => {
             warn!("Shell completions not yet implemented");
-            Err(error::YtdlError::Other(
+            Err(crate::error::YtdlError::Other(
                 "Shell completions coming in a future release".to_string(),
             ))
         }

@@ -387,29 +387,9 @@ async fn fetch_video_info(app: &mut App, url: String) {
     let downloader = Downloader::new(config.output_dir.clone(), config.quality.clone());
 
     match downloader.fetch_video_info(&url).await {
-        Ok(real_info) => {
-            // Convert real VideoInfo to TUI VideoInfo
-            let video_info = VideoInfo {
-                title: real_info.title.clone(),
-                uploader: real_info.uploader.clone(),
-                duration: if let Some(dur) = real_info.duration {
-                    let minutes = dur / 60;
-                    let seconds = dur % 60;
-                    format!("{}:{:02}", minutes, seconds)
-                } else {
-                    "Unknown".to_string()
-                },
-                view_count: real_info.view_count.map(|v| {
-                    v.to_string().as_bytes()
-                        .rchunks(3)
-                        .rev()
-                        .map(std::str::from_utf8)
-                        .collect::<std::result::Result<Vec<&str>, _>>()
-                        .unwrap()
-                        .join(",")
-                }),
-                upload_date: real_info.upload_date.clone(),
-            };
+        Ok(metadata) => {
+            // Convert VideoMetadata to display-friendly VideoInfo
+            let video_info = metadata.to_display_info();
 
             // Convert formats to TUI FormatOptions
             let mut formats = vec![
@@ -422,7 +402,7 @@ async fn fetch_video_info(app: &mut App, url: String) {
             ];
 
             // Get unique video formats sorted by resolution
-            let mut video_formats: Vec<_> = real_info.formats.iter()
+            let mut video_formats: Vec<_> = metadata.formats.iter()
                 .filter(|f| f.vcodec.as_ref().map(|v| v != "none").unwrap_or(false))
                 .collect();
 

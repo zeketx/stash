@@ -20,7 +20,7 @@ pub struct DownloadProgressInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct VideoInfo {
+pub struct VideoMetadata {
     pub id: String,
     pub title: String,
     pub uploader: String,
@@ -30,6 +30,33 @@ pub struct VideoInfo {
     pub description: Option<String>,
     pub thumbnail: Option<String>,
     pub formats: Vec<Format>,
+}
+
+impl VideoMetadata {
+    /// Convert to display-friendly format used by TUI
+    pub fn to_display_info(&self) -> crate::ui::app::VideoInfo {
+        crate::ui::app::VideoInfo {
+            title: self.title.clone(),
+            uploader: self.uploader.clone(),
+            duration: if let Some(dur) = self.duration {
+                let minutes = dur / 60;
+                let seconds = dur % 60;
+                format!("{}:{:02}", minutes, seconds)
+            } else {
+                "Unknown".to_string()
+            },
+            view_count: self.view_count.map(|v| {
+                v.to_string().as_bytes()
+                    .rchunks(3)
+                    .rev()
+                    .map(std::str::from_utf8)
+                    .collect::<std::result::Result<Vec<&str>, _>>()
+                    .unwrap()
+                    .join(",")
+            }),
+            upload_date: self.upload_date.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -244,7 +271,7 @@ impl Downloader {
         Ok(downloaded_file)
     }
 
-    pub async fn fetch_video_info(&self, url: &str) -> Result<VideoInfo> {
+    pub async fn fetch_video_info(&self, url: &str) -> Result<VideoMetadata> {
         info!("Fetching video information for: {}", url);
 
         let output = TokioCommand::new("yt-dlp")
@@ -283,7 +310,7 @@ impl Downloader {
             Vec::new()
         };
 
-        let info = VideoInfo {
+        let info = VideoMetadata {
             id: json_value["id"]
                 .as_str()
                 .unwrap_or("unknown")
@@ -472,7 +499,7 @@ impl Downloader {
         Ok(downloaded_file)
     }
 
-    pub fn list_formats(&self, info: &VideoInfo) {
+    pub fn list_formats(&self, info: &VideoMetadata) {
         println!("\nAvailable formats for: {}", info.title);
         println!("{}", "=".repeat(80));
         println!(
