@@ -2,9 +2,10 @@ use anyhow::Result;
 use crossterm::event::{self, Event as CrosstermEvent, KeyCode, KeyEvent, KeyModifiers};
 use std::time::Duration;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Event {
     Key(KeyEvent),
+    Paste(String),
     Resize(u16, u16),
     Tick,
 }
@@ -24,6 +25,7 @@ impl EventHandler {
         if event::poll(self.tick_rate)? {
             match event::read()? {
                 CrosstermEvent::Key(key) => Ok(Event::Key(key)),
+                CrosstermEvent::Paste(text) => Ok(Event::Paste(text)),
                 CrosstermEvent::Resize(w, h) => Ok(Event::Resize(w, h)),
                 _ => Ok(Event::Tick),
             }

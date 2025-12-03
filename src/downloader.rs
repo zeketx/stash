@@ -4,9 +4,20 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::process::Stdio;
+use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command as TokioCommand;
+use tokio::sync::Mutex;
 use tracing::{debug, error, info, trace};
+
+#[derive(Debug, Clone)]
+pub struct DownloadProgressInfo {
+    pub percentage: f64,
+    pub downloaded_bytes: u64,
+    pub total_bytes: u64,
+    pub speed: f64,
+    pub eta: Option<u64>,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VideoInfo {
@@ -64,6 +75,45 @@ impl Downloader {
     pub async fn resume_download(&self, url: &str, audio_only: bool) -> Result<PathBuf> {
         info!("Attempting to resume download for: {}", url);
         self.download_with_resume(url, audio_only, true).await
+    }
+
+    fn find_newest_file(&self) -> Result<PathBuf> {
+        let entries = std::fs::read_dir(&self.output_dir)
+            .map_err(|e| YtdlError::Other(format!("Failed to read output directory: {}", e)))?;
+
+        let mut newest_file: Option<(PathBuf, std::time::SystemTime)> = None;
+
+        for entry in entries.flatten() {
+            let path = entry.path();
+
+            // Skip directories and .part files
+            if path.is_dir() {
+                continue;
+            }
+            if let Some(ext) = path.extension() {
+                if ext == "part" {
+                    continue;
+                }
+            }
+
+            // Get the modification time
+            if let Ok(metadata) = entry.metadata() {
+                if let Ok(modified) = metadata.modified() {
+                    match newest_file {
+                        None => newest_file = Some((path, modified)),
+                        Some((_, current_time)) => {
+                            if modified > current_time {
+                                newest_file = Some((path, modified));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        newest_file
+            .map(|(path, _)| path)
+            .ok_or_else(|| YtdlError::Other("No downloaded file found in output directory".to_string()))
     }
 
     async fn download_with_resume(&self, url: &str, audio_only: bool, continue_download: bool) -> Result<PathBuf> {
@@ -186,7 +236,12 @@ impl Downloader {
         }
 
         info!("Download completed successfully");
-        Ok(self.output_dir.clone())
+
+        // Find the most recently created file in the output directory
+        let downloaded_file = self.find_newest_file()?;
+        info!("Downloaded file: {:?}", downloaded_file);
+
+        Ok(downloaded_file)
     }
 
     pub async fn fetch_video_info(&self, url: &str) -> Result<VideoInfo> {
@@ -255,6 +310,166 @@ impl Downloader {
 
     pub async fn download(&self, url: &str, audio_only: bool) -> Result<PathBuf> {
         self.download_with_resume(url, audio_only, false).await
+    }
+
+    pub async fn download_with_progress<F>(
+        &self,
+        url: &str,
+        audio_only: bool,
+        mut progress_callback: F,
+    ) -> Result<PathBuf>
+    where
+        F: FnMut(DownloadProgressInfo) + Send + 'static,
+    {
+        info!("Starting download with progress callback: {} (audio_only: {})", url, audio_only);
+
+        std::fs::create_dir_all(&self.output_dir)?;
+
+        let mut args = vec![
+            "-o".to_string(),
+            format!("{}/%(title)s.%(ext)s", self.output_dir.display()),
+            "--progress".to_string(),
+            "--newline".to_string(),
+        ];
+
+        if audio_only {
+            args.extend_from_slice(&[
+                "-x".to_string(),
+                "--audio-format".to_string(),
+                "mp3".to_string(),
+            ]);
+            info!("Audio-only mode: converting to MP3");
+        } else {
+            if self.quality == "best" {
+                args.push("-f".to_string());
+                args.push("bestvideo+bestaudio/best".to_string());
+            } else {
+                args.push("-f".to_string());
+                args.push(format!("bestvideo[height<={}]+bestaudio/best", self.quality));
+            }
+            info!("Video quality: {}", self.quality);
+        }
+
+        args.push(url.to_string());
+
+        debug!("Executing yt-dlp with args: {:?}", args);
+
+        let mut child = TokioCommand::new("yt-dlp")
+            .args(&args)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| YtdlError::YtdlpFailed(format!("Failed to spawn yt-dlp: {}", e)))?;
+
+        let stdout = child.stdout.take().expect("Failed to capture stdout");
+        let stderr = child.stderr.take().expect("Failed to capture stderr");
+
+        let stdout_handle = tokio::spawn(async move {
+            let reader = BufReader::new(stdout);
+            let mut lines = reader.lines();
+
+            let progress_re = Regex::new(r"\[download\]\s+(\d+\.?\d*)%").unwrap();
+            let size_re = Regex::new(r"of\s+~?\s*([\d.]+)(\w+)").unwrap();
+            let downloaded_re = Regex::new(r"\[download\]\s+[\d.]+%\s+of\s+~?\s*[\d.]+\w+\s+at\s+[\d.]+\w+/s\s+ETA\s+[\d:]+").unwrap();
+            let speed_re = Regex::new(r"at\s+([\d.]+)(\w+)/s").unwrap();
+            let eta_re = Regex::new(r"ETA\s+([\d:]+)").unwrap();
+
+            while let Ok(Some(line)) = lines.next_line().await {
+                trace!("yt-dlp stdout: {}", line);
+
+                if let Some(caps) = progress_re.captures(&line) {
+                    if let Ok(percentage) = caps[1].parse::<f64>() {
+                        let mut progress = DownloadProgressInfo {
+                            percentage,
+                            downloaded_bytes: 0,
+                            total_bytes: 0,
+                            speed: 0.0,
+                            eta: None,
+                        };
+
+                        // Parse file size
+                        if let Some(size_caps) = size_re.captures(&line) {
+                            if let Ok(size) = size_caps[1].parse::<f64>() {
+                                let multiplier = match &size_caps[2] {
+                                    "KiB" => 1024.0,
+                                    "MiB" => 1024.0 * 1024.0,
+                                    "GiB" => 1024.0 * 1024.0 * 1024.0,
+                                    _ => 1.0,
+                                };
+                                progress.total_bytes = (size * multiplier) as u64;
+                                progress.downloaded_bytes = (progress.total_bytes as f64 * percentage / 100.0) as u64;
+                            }
+                        }
+
+                        // Parse speed
+                        if let Some(speed_caps) = speed_re.captures(&line) {
+                            if let Ok(speed) = speed_caps[1].parse::<f64>() {
+                                let multiplier = match &speed_caps[2] {
+                                    "KiB" => 1024.0,
+                                    "MiB" => 1024.0 * 1024.0,
+                                    "GiB" => 1024.0 * 1024.0 * 1024.0,
+                                    _ => 1.0,
+                                };
+                                progress.speed = speed * multiplier;
+                            }
+                        }
+
+                        // Parse ETA
+                        if let Some(eta_caps) = eta_re.captures(&line) {
+                            let eta_str = &eta_caps[1];
+                            let parts: Vec<&str> = eta_str.split(':').collect();
+                            if parts.len() == 2 {
+                                if let (Ok(min), Ok(sec)) = (parts[0].parse::<u64>(), parts[1].parse::<u64>()) {
+                                    progress.eta = Some(min * 60 + sec);
+                                }
+                            } else if parts.len() == 3 {
+                                if let (Ok(hr), Ok(min), Ok(sec)) = (parts[0].parse::<u64>(), parts[1].parse::<u64>(), parts[2].parse::<u64>()) {
+                                    progress.eta = Some(hr * 3600 + min * 60 + sec);
+                                }
+                            }
+                        }
+
+                        progress_callback(progress);
+                        debug!("Progress: {:.1}%", percentage);
+                    }
+                }
+            }
+        });
+
+        let stderr_handle = tokio::spawn(async move {
+            let reader = BufReader::new(stderr);
+            let mut lines = reader.lines();
+
+            while let Ok(Some(line)) = lines.next_line().await {
+                if !line.is_empty() {
+                    trace!("yt-dlp stderr: {}", line);
+                }
+            }
+        });
+
+        let status = child
+            .wait()
+            .await
+            .map_err(|e| YtdlError::YtdlpFailed(format!("Failed to wait for yt-dlp: {}", e)))?;
+
+        stdout_handle.await.ok();
+        stderr_handle.await.ok();
+
+        if !status.success() {
+            error!("yt-dlp exited with status: {}", status);
+            return Err(YtdlError::YtdlpFailed(format!(
+                "yt-dlp exited with code {}",
+                status.code().unwrap_or(-1)
+            )));
+        }
+
+        info!("Download completed successfully");
+
+        // Find the most recently created file in the output directory
+        let downloaded_file = self.find_newest_file()?;
+        info!("Downloaded file: {:?}", downloaded_file);
+
+        Ok(downloaded_file)
     }
 
     pub fn list_formats(&self, info: &VideoInfo) {

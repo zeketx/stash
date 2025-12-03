@@ -1,6 +1,8 @@
+use crate::config::Config;
+use crate::downloader::{Downloader, DownloadProgressInfo};
 use crate::error::Result;
 use crate::ui::{
-    app::{App, AppState},
+    app::{App, AppState, DownloadProgress, DownloadSuccess, FormatOption, VideoInfo},
     events::{is_back_key, is_quit_key, Event, EventHandler},
     screens::{
         render_downloading, render_error, render_fetching, render_format_selection,
@@ -9,6 +11,9 @@ use crate::ui::{
     terminal::{restore_terminal, setup_panic_hook, setup_terminal},
 };
 use crossterm::event::{KeyCode, KeyModifiers};
+use std::path::PathBuf;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tracing::{error, info};
 
 pub async fn run_tui() -> Result<()> {
@@ -21,27 +26,31 @@ pub async fn run_tui() -> Result<()> {
     })?;
     info!("Terminal initialized in raw mode");
 
-    // Create application state
-    let mut app = App::new();
+    // Create application state wrapped in Arc<Mutex> for sharing with download task
+    let app = Arc::new(Mutex::new(App::new()));
     let event_handler = EventHandler::default();
 
     // Main event loop
     let result = loop {
         // Render current state
-        if let Err(e) = terminal.draw(|frame| render(&mut app, frame)) {
-            error!("Failed to render frame: {}", e);
-            break Err(crate::error::YtdlError::Other(format!(
-                "Render error: {}",
-                e
-            )));
+        {
+            let mut app_locked = app.lock().await;
+            if let Err(e) = terminal.draw(|frame| render(&mut app_locked, frame)) {
+                error!("Failed to render frame: {}", e);
+                break Err(crate::error::YtdlError::Other(format!(
+                    "Render error: {}",
+                    e
+                )));
+            }
         }
 
         // Handle events
         match event_handler.next() {
             Ok(event) => {
-                if let Err(e) = handle_event(&mut app, event).await {
+                if let Err(e) = handle_event(Arc::clone(&app), event).await {
                     error!("Error handling event: {}", e);
-                    app.go_to_error(
+                    let mut app_locked = app.lock().await;
+                    app_locked.go_to_error(
                         "Event Error".to_string(),
                         format!("{}", e),
                         vec!["Try restarting the application".to_string()],
@@ -58,9 +67,12 @@ pub async fn run_tui() -> Result<()> {
         }
 
         // Check if we should quit
-        if app.should_quit {
-            info!("Application quit requested");
-            break Ok(());
+        {
+            let app_locked = app.lock().await;
+            if app_locked.should_quit {
+                info!("Application quit requested");
+                break Ok(());
+            }
         }
     };
 
@@ -134,31 +146,59 @@ fn render(app: &mut App, frame: &mut ratatui::Frame) {
     }
 }
 
-async fn handle_event(app: &mut App, event: Event) -> Result<()> {
+async fn handle_event(app: Arc<Mutex<App>>, event: Event) -> Result<()> {
     match event {
+        Event::Paste(text) => {
+            // Handle pasted text - only in URL input state
+            let current_state = {
+                let app_locked = app.lock().await;
+                app_locked.state.clone()
+            };
+
+            if let AppState::UrlInput { input, cursor_pos, .. } = &current_state {
+                let mut new_input = input.clone();
+                // Insert the pasted text at cursor position
+                new_input.insert_str(*cursor_pos, &text);
+                let new_cursor_pos = cursor_pos + text.len();
+
+                let mut app_locked = app.lock().await;
+                app_locked.update_input(new_input, new_cursor_pos);
+            }
+        }
         Event::Key(key) => {
             // Global quit key
             if is_quit_key(key) {
-                app.quit();
+                let mut app_locked = app.lock().await;
+                app_locked.quit();
                 return Ok(());
             }
 
             // Global help key (h or ?) - but NOT in URL input where user might be typing
             if matches!(key.code, KeyCode::Char('h') | KeyCode::Char('?')) && key.modifiers.is_empty() {
+                let mut app_locked = app.lock().await;
                 // Don't open help if already in help, settings, or URL input
-                if !matches!(app.state, AppState::Help { .. } | AppState::Settings { .. } | AppState::UrlInput { .. }) {
-                    app.go_to_help();
+                if !matches!(app_locked.state, AppState::Help { .. } | AppState::Settings { .. } | AppState::UrlInput { .. }) {
+                    app_locked.go_to_help();
                     return Ok(());
                 }
             }
 
             // State-specific key handling
-            match &app.state {
+            let current_state = {
+                let app_locked = app.lock().await;
+                app_locked.state.clone()
+            };
+
+            match &current_state {
                 AppState::Welcome => {
                     match key.code {
-                        KeyCode::Enter => app.go_to_url_input(),
+                        KeyCode::Enter => {
+                            let mut app_locked = app.lock().await;
+                            app_locked.go_to_url_input();
+                        }
                         KeyCode::Char('s') | KeyCode::Char('S') => {
-                            app.go_to_settings(
+                            let mut app_locked = app.lock().await;
+                            app_locked.go_to_settings(
                                 "./downloads".to_string(),
                                 "best".to_string(),
                                 3,
@@ -174,53 +214,86 @@ async fn handle_event(app: &mut App, event: Event) -> Result<()> {
                         KeyCode::Char(c) if key.modifiers.is_empty() => {
                             let mut new_input = input.clone();
                             new_input.insert(*cursor_pos, c);
-                            app.update_input(new_input, cursor_pos + 1);
+                            let mut app_locked = app.lock().await;
+                            app_locked.update_input(new_input, cursor_pos + 1);
                         }
                         KeyCode::Backspace => {
                             if *cursor_pos > 0 {
                                 let mut new_input = input.clone();
                                 new_input.remove(cursor_pos - 1);
-                                app.update_input(new_input, cursor_pos - 1);
+                                let mut app_locked = app.lock().await;
+                                app_locked.update_input(new_input, cursor_pos - 1);
                             }
                         }
                         KeyCode::Char('u') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                            app.update_input(String::new(), 0);
+                            let mut app_locked = app.lock().await;
+                            app_locked.update_input(String::new(), 0);
                         }
                         KeyCode::Enter => {
                             // Validate and proceed
                             if input.contains("youtube.com") || input.contains("youtu.be") {
-                                app.start_fetching_info(input.clone());
-                                // Simulate fetching (in real implementation, this would be async)
-                                simulate_video_fetch(app).await;
+                                let mut app_locked = app.lock().await;
+                                app_locked.start_fetching_info(input.clone());
+                                drop(app_locked); // Release lock before async call
+                                // Fetch real video info
+                                fetch_video_info(&mut *app.lock().await, input.clone()).await;
                             }
                         }
                         KeyCode::Esc => {
-                            app.go_to_welcome();
+                            let mut app_locked = app.lock().await;
+                            app_locked.go_to_welcome();
                         }
                         _ => {}
                     }
                 }
                 AppState::FetchingInfo { .. } => {
                     if is_back_key(key) {
-                        app.go_to_url_input();
+                        let mut app_locked = app.lock().await;
+                        app_locked.go_to_url_input();
                     }
                 }
-                AppState::FormatSelection { .. } => {
+                AppState::FormatSelection { url, .. } => {
                     match key.code {
-                        KeyCode::Up => app.select_previous_format(),
-                        KeyCode::Down => app.select_next_format(),
+                        KeyCode::Up => {
+                            let mut app_locked = app.lock().await;
+                            app_locked.select_previous_format();
+                        }
+                        KeyCode::Down => {
+                            let mut app_locked = app.lock().await;
+                            app_locked.select_next_format();
+                        }
                         KeyCode::Enter => {
-                            app.start_download();
-                            // Simulate download (in real implementation, this would be async)
-                            simulate_download(app).await;
+                            let url_clone = url.clone();
+                            let selected_format = {
+                                let mut app_locked = app.lock().await;
+                                app_locked.start_download();
+
+                                // Get format to determine if audio only
+                                if let AppState::Downloading { format, .. } = &app_locked.state {
+                                    format.format_id.clone()
+                                } else {
+                                    "best".to_string()
+                                }
+                            };
+
+                            let audio_only = selected_format == "audio";
+
+                            // Spawn download task
+                            tokio::spawn(perform_download(Arc::clone(&app), url_clone, audio_only));
                         }
                         KeyCode::Char('a') | KeyCode::Char('A') => {
-                            // Quick select audio only - would select first audio format
-                            app.start_download();
-                            simulate_download(app).await;
+                            // Quick select audio only
+                            let url_clone = url.clone();
+                            {
+                                let mut app_locked = app.lock().await;
+                                app_locked.start_download();
+                            }
+                            // Spawn download task for audio
+                            tokio::spawn(perform_download(Arc::clone(&app), url_clone, true));
                         }
                         KeyCode::Esc => {
-                            app.go_to_url_input();
+                            let mut app_locked = app.lock().await;
+                            app_locked.go_to_url_input();
                         }
                         _ => {}
                     }
@@ -231,13 +304,15 @@ async fn handle_event(app: &mut App, event: Event) -> Result<()> {
                         (key.code, key.modifiers),
                         (KeyCode::Char('c'), KeyModifiers::CONTROL)
                     ) {
-                        app.go_to_url_input();
+                        let mut app_locked = app.lock().await;
+                        app_locked.go_to_url_input();
                     }
                 }
                 AppState::Success { .. } => {
                     match key.code {
                         KeyCode::Char('n') | KeyCode::Char('N') => {
-                            app.go_to_url_input();
+                            let mut app_locked = app.lock().await;
+                            app_locked.go_to_url_input();
                         }
                         KeyCode::Char('o') | KeyCode::Char('O') => {
                             // Open file not implemented
@@ -253,30 +328,40 @@ async fn handle_event(app: &mut App, event: Event) -> Result<()> {
                 AppState::Error { .. } => {
                     match key.code {
                         KeyCode::Char('n') | KeyCode::Char('N') => {
-                            app.go_to_url_input();
+                            let mut app_locked = app.lock().await;
+                            app_locked.go_to_url_input();
                         }
                         KeyCode::Char('r') | KeyCode::Char('R') => {
                             // Retry - go back to URL input
-                            app.go_to_url_input();
+                            let mut app_locked = app.lock().await;
+                            app_locked.go_to_url_input();
                         }
                         _ => {}
                     }
                 }
                 AppState::Help { .. } => {
                     if is_back_key(key) {
-                        app.back_from_overlay();
+                        let mut app_locked = app.lock().await;
+                        app_locked.back_from_overlay();
                     }
                 }
                 AppState::Settings { .. } => {
                     match key.code {
-                        KeyCode::Up => app.select_previous_setting(),
-                        KeyCode::Down => app.select_next_setting(),
+                        KeyCode::Up => {
+                            let mut app_locked = app.lock().await;
+                            app_locked.select_previous_setting();
+                        }
+                        KeyCode::Down => {
+                            let mut app_locked = app.lock().await;
+                            app_locked.select_next_setting();
+                        }
                         KeyCode::Enter => {
                             // TODO: Edit selected setting
                             info!("Edit setting selected");
                         }
                         KeyCode::Esc => {
-                            app.back_from_overlay();
+                            let mut app_locked = app.lock().await;
+                            app_locked.back_from_overlay();
                         }
                         _ => {}
                     }
@@ -288,96 +373,203 @@ async fn handle_event(app: &mut App, event: Event) -> Result<()> {
         }
         Event::Tick => {
             // Regular tick for animations and updates
-            app.tick();
+            let mut app_locked = app.lock().await;
+            app_locked.tick();
         }
     }
 
     Ok(())
 }
 
-// Simulate video fetch for demo purposes
-async fn simulate_video_fetch(app: &mut App) {
-    use crate::ui::app::{FormatOption, VideoInfo};
-    use tokio::time::{sleep, Duration};
+// Fetch real video information
+async fn fetch_video_info(app: &mut App, url: String) {
+    let config = Config::load_with_env_overrides();
+    let downloader = Downloader::new(config.output_dir.clone(), config.quality.clone());
 
-    // Simulate network delay
-    sleep(Duration::from_millis(500)).await;
+    match downloader.fetch_video_info(&url).await {
+        Ok(real_info) => {
+            // Convert real VideoInfo to TUI VideoInfo
+            let video_info = VideoInfo {
+                title: real_info.title.clone(),
+                uploader: real_info.uploader.clone(),
+                duration: if let Some(dur) = real_info.duration {
+                    let minutes = dur / 60;
+                    let seconds = dur % 60;
+                    format!("{}:{:02}", minutes, seconds)
+                } else {
+                    "Unknown".to_string()
+                },
+                view_count: real_info.view_count.map(|v| {
+                    v.to_string().as_bytes()
+                        .rchunks(3)
+                        .rev()
+                        .map(std::str::from_utf8)
+                        .collect::<std::result::Result<Vec<&str>, _>>()
+                        .unwrap()
+                        .join(",")
+                }),
+                upload_date: real_info.upload_date.clone(),
+            };
 
-    let video_info = VideoInfo {
-        title: "Example Video Title".to_string(),
-        uploader: "Example Channel".to_string(),
-        duration: "5:30".to_string(),
-        view_count: Some("1,234,567".to_string()),
-        upload_date: Some("2024-01-15".to_string()),
-    };
+            // Convert formats to TUI FormatOptions
+            let mut formats = vec![
+                FormatOption {
+                    label: "Best Quality".to_string(),
+                    resolution: "Auto".to_string(),
+                    file_size: "Best available".to_string(),
+                    format_id: "best".to_string(),
+                },
+            ];
 
-    let formats = vec![
-        FormatOption {
-            label: "Best Quality".to_string(),
-            resolution: "1920x1080".to_string(),
-            file_size: "~500 MB".to_string(),
-            format_id: "best".to_string(),
-        },
-        FormatOption {
-            label: "1080p".to_string(),
-            resolution: "1920x1080".to_string(),
-            file_size: "~450 MB".to_string(),
-            format_id: "1080p".to_string(),
-        },
-        FormatOption {
-            label: "720p".to_string(),
-            resolution: "1280x720".to_string(),
-            file_size: "~200 MB".to_string(),
-            format_id: "720p".to_string(),
-        },
-        FormatOption {
-            label: "480p".to_string(),
-            resolution: "854x480".to_string(),
-            file_size: "~100 MB".to_string(),
-            format_id: "480p".to_string(),
-        },
-        FormatOption {
-            label: "Audio Only".to_string(),
-            resolution: "N/A".to_string(),
-            file_size: "~5 MB".to_string(),
-            format_id: "audio".to_string(),
-        },
-    ];
+            // Get unique video formats sorted by resolution
+            let mut video_formats: Vec<_> = real_info.formats.iter()
+                .filter(|f| f.vcodec.as_ref().map(|v| v != "none").unwrap_or(false))
+                .collect();
 
-    if let AppState::FetchingInfo { url } = &app.state {
-        app.show_format_selection(url.clone(), video_info, formats);
+            video_formats.sort_by(|a, b| {
+                b.resolution.as_ref()
+                    .and_then(|r| r.split('x').nth(1))
+                    .and_then(|h| h.parse::<u32>().ok())
+                    .unwrap_or(0)
+                    .cmp(&a.resolution.as_ref()
+                        .and_then(|r| r.split('x').nth(1))
+                        .and_then(|h| h.parse::<u32>().ok())
+                        .unwrap_or(0))
+            });
+
+            for format in video_formats.iter().take(5) {
+                let resolution = format.resolution.as_ref()
+                    .map(|r| r.clone())
+                    .unwrap_or_else(|| "Unknown".to_string());
+                let file_size = format.filesize
+                    .map(|s| format!("{:.1} MB", s as f64 / 1_000_000.0))
+                    .unwrap_or_else(|| "Unknown".to_string());
+
+                formats.push(FormatOption {
+                    label: resolution.clone(),
+                    resolution: resolution.clone(),
+                    file_size,
+                    format_id: format.format_id.clone(),
+                });
+            }
+
+            // Add audio only option
+            formats.push(FormatOption {
+                label: "Audio Only (MP3)".to_string(),
+                resolution: "N/A".to_string(),
+                file_size: "~5-10 MB".to_string(),
+                format_id: "audio".to_string(),
+            });
+
+            if let AppState::FetchingInfo { url: _ } = &app.state {
+                app.show_format_selection(url.clone(), video_info, formats);
+            }
+        }
+        Err(e) => {
+            error!("Failed to fetch video info: {}", e);
+            app.go_to_error(
+                "Fetch Error".to_string(),
+                format!("Failed to fetch video information: {}", e),
+                vec![
+                    "Check your internet connection".to_string(),
+                    "Verify the URL is correct".to_string(),
+                    "Try updating yt-dlp".to_string(),
+                ],
+            );
+        }
     }
 }
 
-// Simulate download for demo purposes
-async fn simulate_download(app: &mut App) {
-    use crate::ui::app::{DownloadProgress, DownloadSuccess};
-    use std::path::PathBuf;
-    use tokio::time::{sleep, Duration};
+// Perform real download with progress updates
+async fn perform_download(app: Arc<Mutex<App>>, url: String, audio_only: bool) {
+    let config = Config::load_with_env_overrides();
+    let downloader = Downloader::new(config.output_dir.clone(), config.quality.clone());
 
-    // Simulate download progress
-    for i in 0..=100 {
-        if let AppState::Downloading { progress, .. } = &mut app.state {
-            let new_progress = DownloadProgress {
-                percentage: i as f64,
-                downloaded_bytes: (i as u64 * 5_000_000),
-                total_bytes: 500_000_000,
-                speed: 5_000_000.0,
-                eta: Some((100 - i) as u64),
-                elapsed: i as u64,
-            };
-            app.update_progress(new_progress);
+    let app_clone = Arc::clone(&app);
+    let start_time = std::time::Instant::now();
+
+    let result = downloader.download_with_progress(
+        &url,
+        audio_only,
+        move |progress_info: DownloadProgressInfo| {
+            let elapsed = start_time.elapsed().as_secs();
+            let app_handle = Arc::clone(&app_clone);
+
+            // Update the app state with real progress
+            tokio::spawn(async move {
+                let mut app_locked = app_handle.lock().await;
+                if let AppState::Downloading { progress, .. } = &mut app_locked.state {
+                    *progress = DownloadProgress {
+                        percentage: progress_info.percentage,
+                        downloaded_bytes: progress_info.downloaded_bytes,
+                        total_bytes: progress_info.total_bytes,
+                        speed: progress_info.speed,
+                        eta: progress_info.eta,
+                        elapsed,
+                    };
+                }
+            });
         }
-        sleep(Duration::from_millis(50)).await;
+    ).await;
+
+    let mut app_locked = app.lock().await;
+
+    match result {
+        Ok(file_path) => {
+            let filename = file_path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("Unknown")
+                .to_string();
+
+            let file_size = tokio::fs::metadata(&file_path)
+                .await
+                .ok()
+                .map(|m| {
+                    let bytes = m.len();
+                    if bytes > 1_000_000_000 {
+                        format!("{:.2} GB", bytes as f64 / 1_000_000_000.0)
+                    } else if bytes > 1_000_000 {
+                        format!("{:.1} MB", bytes as f64 / 1_000_000.0)
+                    } else if bytes > 1_000 {
+                        format!("{:.1} KB", bytes as f64 / 1_000.0)
+                    } else {
+                        format!("{} bytes", bytes)
+                    }
+                })
+                .unwrap_or_else(|| "Unknown".to_string());
+
+            let duration = start_time.elapsed();
+            let duration_str = if duration.as_secs() > 60 {
+                format!("{} min {} sec", duration.as_secs() / 60, duration.as_secs() % 60)
+            } else {
+                format!("{} seconds", duration.as_secs())
+            };
+
+            let save_location = file_path.parent()
+                .map(|p| p.to_path_buf())
+                .unwrap_or_else(|| PathBuf::from("./downloads"));
+
+            let success_info = DownloadSuccess {
+                filename,
+                file_size,
+                duration: duration_str,
+                save_location,
+            };
+
+            app_locked.download_complete(success_info);
+        }
+        Err(e) => {
+            error!("Download failed: {}", e);
+            app_locked.go_to_error(
+                "Download Error".to_string(),
+                format!("Failed to download video: {}", e),
+                vec![
+                    "Check your internet connection".to_string(),
+                    "Verify the video is still available".to_string(),
+                    "Try a different quality or format".to_string(),
+                ],
+            );
+        }
     }
-
-    // Mark as complete
-    let success_info = DownloadSuccess {
-        filename: "example_video.mp4".to_string(),
-        file_size: "500 MB".to_string(),
-        duration: "5 seconds".to_string(),
-        save_location: PathBuf::from("./downloads"),
-    };
-
-    app.download_complete(success_info);
 }
