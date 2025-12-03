@@ -1,3 +1,4 @@
+use crate::shared::constants::*;
 use notify_rust::{Notification, Timeout};
 use tracing::{error, info};
 
@@ -9,7 +10,7 @@ pub fn notify_download_complete(title: &str, file_path: &str) -> Result<(), Box<
         Notification::new()
             .summary("Download Complete")
             .body(&format!("{}\nSaved to: {}", title, file_path))
-            .timeout(Timeout::Milliseconds(5000))
+            .timeout(Timeout::Milliseconds(NOTIFICATION_TIMEOUT_MS))
             .show()
             .map_err(|e| {
                 error!("Failed to send notification: {}", e);
@@ -24,7 +25,7 @@ pub fn notify_download_complete(title: &str, file_path: &str) -> Result<(), Box<
         Notification::new()
             .summary("Download Complete")
             .body(&format!("{}\nSaved to: {}", title, file_path))
-            .timeout(Timeout::Milliseconds(5000))
+            .timeout(Timeout::Milliseconds(NOTIFICATION_TIMEOUT_MS))
             .show()
             .map_err(|e| {
                 error!("Failed to send notification: {}", e);
@@ -43,7 +44,7 @@ pub fn notify_download_error(title: &str, error: &str) -> Result<(), Box<dyn std
         Notification::new()
             .summary("Download Failed")
             .body(&format!("{}\nError: {}", title, error))
-            .timeout(Timeout::Milliseconds(5000))
+            .timeout(Timeout::Milliseconds(NOTIFICATION_TIMEOUT_MS))
             .show()
             .map_err(|e| {
                 error!("Failed to send notification: {}", e);
@@ -57,7 +58,7 @@ pub fn notify_download_error(title: &str, error: &str) -> Result<(), Box<dyn std
         Notification::new()
             .summary("Download Failed")
             .body(&format!("{}\nError: {}", title, error))
-            .timeout(Timeout::Milliseconds(5000))
+            .timeout(Timeout::Milliseconds(NOTIFICATION_TIMEOUT_MS))
             .show()
             .map_err(|e| {
                 error!("Failed to send notification: {}", e);

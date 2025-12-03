@@ -1,4 +1,4 @@
-use crate::shared::{Result, YtdlError};
+use crate::shared::{constants::*, Result, YtdlError};
 use indicatif::{ProgressBar, ProgressStyle};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -418,9 +418,9 @@ impl Downloader {
                         if let Some(size_caps) = size_re.captures(&line) {
                             if let Ok(size) = size_caps[1].parse::<f64>() {
                                 let multiplier = match &size_caps[2] {
-                                    "KiB" => 1024.0,
-                                    "MiB" => 1024.0 * 1024.0,
-                                    "GiB" => 1024.0 * 1024.0 * 1024.0,
+                                    "KiB" => BYTES_PER_KB,
+                                    "MiB" => BYTES_PER_MB,
+                                    "GiB" => BYTES_PER_GB,
                                     _ => 1.0,
                                 };
                                 progress.total_bytes = (size * multiplier) as u64;
@@ -432,9 +432,9 @@ impl Downloader {
                         if let Some(speed_caps) = speed_re.captures(&line) {
                             if let Ok(speed) = speed_caps[1].parse::<f64>() {
                                 let multiplier = match &speed_caps[2] {
-                                    "KiB" => 1024.0,
-                                    "MiB" => 1024.0 * 1024.0,
-                                    "GiB" => 1024.0 * 1024.0 * 1024.0,
+                                    "KiB" => BYTES_PER_KB,
+                                    "MiB" => BYTES_PER_MB,
+                                    "GiB" => BYTES_PER_GB,
                                     _ => 1.0,
                                 };
                                 progress.speed = speed * multiplier;
@@ -447,11 +447,11 @@ impl Downloader {
                             let parts: Vec<&str> = eta_str.split(':').collect();
                             if parts.len() == 2 {
                                 if let (Ok(min), Ok(sec)) = (parts[0].parse::<u64>(), parts[1].parse::<u64>()) {
-                                    progress.eta = Some(min * 60 + sec);
+                                    progress.eta = Some(min * SECONDS_PER_MINUTE + sec);
                                 }
                             } else if parts.len() == 3 {
                                 if let (Ok(hr), Ok(min), Ok(sec)) = (parts[0].parse::<u64>(), parts[1].parse::<u64>(), parts[2].parse::<u64>()) {
-                                    progress.eta = Some(hr * 3600 + min * 60 + sec);
+                                    progress.eta = Some(hr * SECONDS_PER_HOUR + min * SECONDS_PER_MINUTE + sec);
                                 }
                             }
                         }
@@ -501,12 +501,12 @@ impl Downloader {
 
     pub fn list_formats(&self, info: &VideoMetadata) {
         println!("\nAvailable formats for: {}", info.title);
-        println!("{}", "=".repeat(80));
+        println!("{}", SEPARATOR_LINE.repeat(SEPARATOR_WIDTH));
         println!(
             "{:<10} {:<8} {:<15} {:<8} {:<15} {:<15}",
             "Format ID", "Ext", "Resolution", "FPS", "Video Codec", "Audio Codec"
         );
-        println!("{}", "-".repeat(80));
+        println!("{}", SUBSEPARATOR_LINE.repeat(SEPARATOR_WIDTH));
 
         for format in &info.formats {
             println!(

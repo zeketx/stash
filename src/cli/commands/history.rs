@@ -1,4 +1,4 @@
-use crate::shared::Result;
+use crate::shared::{constants::*, Result};
 use crate::core::history::History;
 use colored::Colorize;
 
@@ -26,7 +26,7 @@ pub async fn handle_history_command(
     }
 
     println!("\n{}", "Download History:".green().bold());
-    println!("{}", "=".repeat(80));
+    println!("{}", SEPARATOR_LINE.repeat(SEPARATOR_WIDTH));
 
     for entry in entries {
         println!("\nTitle: {}", entry.title);

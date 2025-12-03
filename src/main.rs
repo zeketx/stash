@@ -12,7 +12,7 @@ use crate::cli::{
 use crate::core::{BatchDownloader, History, PlaylistDownloader};
 use crate::infra::{get_clipboard_url, init_logger, level_from_verbosity, ClipboardWatcher,
     LoggerConfig};
-use crate::shared::{check_ffmpeg, check_ytdlp, validate_youtube_url, Result};
+use crate::shared::{constants::*, check_ffmpeg, check_ytdlp, validate_youtube_url, Result};
 use clap::Parser;
 use colored::Colorize;
 use std::process;
@@ -168,7 +168,7 @@ async fn run() -> Result<()> {
         let stats = batch_downloader.download_all().await?;
 
         println!("\n{}", "Batch Download Complete!".green().bold());
-        println!("{}", "=".repeat(80));
+        println!("{}", SEPARATOR_LINE.repeat(SEPARATOR_WIDTH));
         println!("Total: {}", stats.total);
         println!("{} Successful: {}", "✓".green(), stats.successful);
         println!("{} Failed: {}", "✗".red(), stats.failed);
@@ -243,7 +243,7 @@ async fn handle_subcommand(command: Commands, _config: &Config, history: &mut Hi
 
 fn print_examples() {
     println!("{}", "Common Usage Examples:".green().bold());
-    println!("{}", "=".repeat(80));
+    println!("{}", SEPARATOR_LINE.repeat(SEPARATOR_WIDTH));
     println!();
 
     println!("{}", "Basic Downloads:".cyan().bold());

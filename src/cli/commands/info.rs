@@ -1,6 +1,6 @@
 use crate::cli::config::Config;
 use crate::infra::downloader::Downloader;
-use crate::shared::Result;
+use crate::shared::{constants::*, Result};
 use colored::Colorize;
 
 pub async fn show_video_info(url: &str, config: &Config) -> Result<()> {
@@ -10,7 +10,7 @@ pub async fn show_video_info(url: &str, config: &Config) -> Result<()> {
     let video_info = downloader.fetch_video_info(url).await?;
 
     println!("\n{}", "Video Information:".green().bold());
-    println!("{}", "=".repeat(80));
+    println!("{}", SEPARATOR_LINE.repeat(SEPARATOR_WIDTH));
     println!("Title: {}", video_info.title);
     println!("Uploader: {}", video_info.uploader);
 
@@ -50,7 +50,7 @@ pub async fn show_video_info(url: &str, config: &Config) -> Result<()> {
     }
 
     println!("\n{}", "Available Formats:".cyan().bold());
-    println!("{}", "-".repeat(80));
+    println!("{}", SUBSEPARATOR_LINE.repeat(SEPARATOR_WIDTH));
 
     let mut video_formats: Vec<_> = video_info.formats.iter()
         .filter(|f| f.vcodec.as_ref().map(|v| v != "none").unwrap_or(false))

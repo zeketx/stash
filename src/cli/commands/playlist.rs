@@ -1,6 +1,6 @@
 use crate::cli::config::Config;
-use crate::shared::{Result, YtdlError};
 use crate::core::playlist::PlaylistDownloader;
+use crate::shared::{constants::*, Result, YtdlError};
 use colored::Colorize;
 use tracing::info;
 
@@ -45,7 +45,7 @@ pub async fn handle_playlist_download(
         let playlist_info = playlist_downloader.fetch_playlist_info(url).await?;
 
         println!("\n{}", "Playlist Information:".green().bold());
-        println!("{}", "=".repeat(80));
+        println!("{}", SEPARATOR_LINE.repeat(SEPARATOR_WIDTH));
         println!("Title: {}", playlist_info.title);
         if let Some(ref uploader) = playlist_info.uploader {
             println!("Uploader: {}", uploader);

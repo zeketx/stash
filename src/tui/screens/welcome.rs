@@ -7,7 +7,7 @@ use ratatui::{
     Frame,
 };
 
-pub fn render_welcome(frame: &mut Frame, theme: &Theme) {
+pub fn render_welcome(frame: &mut Frame, theme: &Theme, banner_color: Color, pulse_intensity: f32) {
     let area = frame.area();
 
     let chunks = Layout::default()
@@ -19,9 +19,14 @@ pub fn render_welcome(frame: &mut Frame, theme: &Theme) {
         ])
         .split(area);
 
-    // Title
+    // Title with pulsing effect
+    let title_color = if pulse_intensity > 0.7 {
+        theme.success
+    } else {
+        theme.primary
+    };
     let title = Paragraph::new("Welcome!")
-        .style(Style::default().fg(theme.primary).add_modifier(Modifier::BOLD))
+        .style(Style::default().fg(title_color).add_modifier(Modifier::BOLD))
         .alignment(Alignment::Center);
     frame.render_widget(title, chunks[0]);
 
@@ -44,8 +49,8 @@ pub fn render_welcome(frame: &mut Frame, theme: &Theme) {
         ])
         .split(main_area);
 
-    // Banner
-    let banner = render_banner(theme.primary);
+    // Banner with color-cycling animation
+    let banner = render_banner(banner_color);
     frame.render_widget(banner, inner[0]);
 
     // Version

@@ -1,13 +1,13 @@
 use crate::cli::config::Config;
-use crate::shared::Result;
 use crate::core::history::History;
+use crate::shared::{constants::*, Result};
 use colored::Colorize;
 
 pub async fn handle_config_command() -> Result<()> {
     let config = Config::load_with_env_overrides();
 
     println!("\n{}", "Current Configuration:".green().bold());
-    println!("{}", "=".repeat(80));
+    println!("{}", SEPARATOR_LINE.repeat(SEPARATOR_WIDTH));
     println!("Output Directory: {:?}", config.output_dir);
     println!("Quality: {}", config.quality);
     println!("Audio Only: {}", config.audio_only);

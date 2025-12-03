@@ -88,7 +88,9 @@ pub async fn run_tui() -> Result<()> {
 fn render(app: &mut App, frame: &mut ratatui::Frame) {
     match &app.state {
         AppState::Welcome => {
-            render_welcome(frame, &app.theme);
+            let banner_color = app.color_cycle.current_color();
+            let pulse_intensity = app.pulsing_selection.intensity();
+            render_welcome(frame, &app.theme, banner_color, pulse_intensity);
         }
         AppState::UrlInput {
             input,

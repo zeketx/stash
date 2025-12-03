@@ -60,3 +60,5 @@ notify-rust = "4.11"
 [dev-dependencies]
 mockall = "0.13"
 tempfile = "3.12"
+assert_cmd = "2.0"
+predicates = "3.1"
