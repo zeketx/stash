@@ -1,10 +1,10 @@
 # ytdl - YouTube Downloader
 
-A feature-rich YouTube downloader with both CLI and TUI interfaces, built in Rust. Download videos, playlists, and manage your download history with ease.
+A YouTube downloader with both CLI and TUI interfaces, built in Rust. Download videos, playlists, and manage your download history with ease.
 
 ## Features
 
-- 🎨 **Beautiful TUI** - Interactive terminal interface with animations
+- 🎨 **TUI** - Terminal interface
 - 📦 **Batch Downloads** - Download multiple videos concurrently
 - 📝 **History Tracking** - Keep track of all your downloads
 - 📋 **Clipboard Support** - Auto-detect YouTube URLs from clipboard
@@ -156,7 +156,7 @@ ytdl --examples
 
 ## Project Structure
 
-The codebase follows a clean, layered architecture:
+The codebase architecture:
 
 ```
 src/
