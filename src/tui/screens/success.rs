@@ -1,4 +1,4 @@
-use crate::ui::{app::DownloadSuccess, theme::Theme};
+use crate::tui::{app::DownloadSuccess, theme::Theme};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Modifier, Style},

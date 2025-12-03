@@ -1,6 +1,6 @@
-use crate::config::Config;
-use crate::error::{Result, YtdlError};
-use crate::playlist::PlaylistDownloader;
+use crate::cli::config::Config;
+use crate::shared::{Result, YtdlError};
+use crate::core::playlist::PlaylistDownloader;
 use colored::Colorize;
 use tracing::info;
 

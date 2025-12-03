@@ -1,4 +1,4 @@
-use crate::error::{Result, YtdlError};
+use crate::shared::{Result, YtdlError};
 use regex::Regex;
 use std::process::Command;
 use tracing::{debug, info};

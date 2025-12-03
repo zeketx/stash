@@ -1,6 +1,6 @@
-use crate::config::Config;
-use crate::downloader::Downloader;
-use crate::error::Result;
+use crate::cli::config::Config;
+use crate::infra::downloader::Downloader;
+use crate::shared::Result;
 use colored::Colorize;
 
 pub async fn show_video_info(url: &str, config: &Config) -> Result<()> {

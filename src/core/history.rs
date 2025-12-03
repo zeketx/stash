@@ -1,4 +1,4 @@
-use crate::error::{Result, YtdlError};
+use crate::shared::{Result, YtdlError};
 use chrono::{DateTime, Utc};
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};

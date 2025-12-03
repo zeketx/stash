@@ -1,4 +1,4 @@
-use crate::ui::{app::DownloadHistory, theme::Theme};
+use crate::tui::{app::DownloadHistory, theme::Theme};
 use chrono::Local;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},

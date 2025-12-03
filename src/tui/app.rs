@@ -1,6 +1,6 @@
-use crate::ui::screens::SettingsState;
-use crate::ui::theme::Theme;
-use crate::ui::widgets::{BlinkingCursor, CheckmarkAnimation, Spinner};
+use crate::tui::screens::SettingsState;
+use crate::tui::theme::Theme;
+use crate::tui::widgets::{BlinkingCursor, CheckmarkAnimation, Spinner};
 use chrono::{DateTime, Local};
 use std::path::PathBuf;
 

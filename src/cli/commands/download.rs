@@ -1,7 +1,7 @@
-use crate::config::Config;
-use crate::downloader::Downloader;
-use crate::error::Result;
-use crate::history::{History, HistoryEntry};
+use crate::cli::config::Config;
+use crate::infra::downloader::Downloader;
+use crate::shared::Result;
+use crate::core::history::{History, HistoryEntry};
 use colored::Colorize;
 use tracing::{info, warn};
 

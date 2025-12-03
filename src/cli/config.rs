@@ -1,4 +1,4 @@
-use crate::error::{Result, YtdlError};
+use crate::shared::{Result, YtdlError};
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;

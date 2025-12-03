@@ -1,4 +1,4 @@
-use crate::ui::{theme::Theme, widgets::render_banner};
+use crate::tui::{theme::Theme, widgets::render_banner};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},

@@ -1,5 +1,5 @@
-use crate::error::{Result, YtdlError};
-use crate::utils::validate_youtube_url;
+use crate::shared::{Result, YtdlError};
+use crate::shared::utils::validate_youtube_url;
 use arboard::Clipboard;
 use tracing::{debug, error, info, warn};
 

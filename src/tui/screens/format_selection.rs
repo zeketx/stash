@@ -1,4 +1,4 @@
-use crate::ui::{app::{FormatOption, VideoInfo}, theme::Theme};
+use crate::tui::{app::{FormatOption, VideoInfo}, theme::Theme};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Modifier, Style},

@@ -1,31 +1,18 @@
-mod batch;
-mod clipboard;
 mod cli;
-mod commands;
-mod config;
-mod downloader;
-mod error;
-mod history;
-mod logger;
-mod notifications;
-mod playlist;
+mod core;
+mod infra;
+mod shared;
 mod tui;
-mod ui;
-mod utils;
 
-use crate::batch::BatchDownloader;
-use crate::cli::{Cli, Commands};
-use crate::clipboard::{get_clipboard_url, ClipboardWatcher};
-use crate::commands::{
+use crate::cli::{
     download_single_url, handle_clear_history_command, handle_config_command,
-    handle_history_command, handle_playlist_download, show_video_info,
+    handle_history_command, handle_playlist_download, show_video_info, CliConfig, Cli, Commands,
+    Config,
 };
-use crate::config::{CliConfig, Config};
-use crate::error::Result;
-use crate::history::History;
-use crate::logger::{init_logger, level_from_verbosity, LoggerConfig};
-use crate::playlist::PlaylistDownloader;
-use crate::utils::{check_ffmpeg, check_ytdlp, validate_youtube_url};
+use crate::core::{BatchDownloader, History, PlaylistDownloader};
+use crate::infra::{get_clipboard_url, init_logger, level_from_verbosity, ClipboardWatcher,
+    LoggerConfig};
+use crate::shared::{check_ffmpeg, check_ytdlp, validate_youtube_url, Result};
 use clap::Parser;
 use colored::Colorize;
 use std::process;
@@ -72,7 +59,7 @@ async fn run() -> Result<()> {
     // Validate CLI arguments
     if let Err(e) = cli.validate() {
         error!("Validation error: {}", e);
-        return Err(error::YtdlError::Config(e));
+        return Err(shared::YtdlError::Config(e));
     }
 
     // Check for yt-dlp
@@ -199,7 +186,7 @@ async fn run() -> Result<()> {
                 Some(url)
             }
             None => {
-                return Err(error::YtdlError::Other(
+                return Err(shared::YtdlError::Other(
                     "No valid YouTube URL found in clipboard".to_string(),
                 ));
             }
@@ -224,7 +211,7 @@ async fn run() -> Result<()> {
 
         return download_single_url(&url, &config, &mut history, cli.resume).await;
     } else {
-        Err(error::YtdlError::Config(
+        Err(shared::YtdlError::Config(
             "No URL provided. Use --help for usage information.".to_string(),
         ))
     }
@@ -247,7 +234,7 @@ async fn handle_subcommand(command: Commands, _config: &Config, history: &mut Hi
         }
         Commands::Completions { shell: _ } => {
             warn!("Shell completions not yet implemented");
-            Err(crate::error::YtdlError::Other(
+            Err(crate::shared::YtdlError::Other(
                 "Shell completions coming in a future release".to_string(),
             ))
         }

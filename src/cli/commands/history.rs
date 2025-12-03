@@ -1,5 +1,5 @@
-use crate::error::Result;
-use crate::history::History;
+use crate::shared::Result;
+use crate::core::history::History;
 use colored::Colorize;
 
 pub async fn handle_history_command(

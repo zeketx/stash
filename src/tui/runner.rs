@@ -1,7 +1,7 @@
-use crate::config::Config;
-use crate::downloader::{Downloader, DownloadProgressInfo};
-use crate::error::Result;
-use crate::ui::{
+use crate::cli::config::Config;
+use crate::infra::downloader::{Downloader, DownloadProgressInfo};
+use crate::shared::Result;
+use crate::tui::{
     app::{App, AppState, DownloadProgress, DownloadSuccess, FormatOption, VideoInfo},
     events::{is_back_key, is_quit_key, Event, EventHandler},
     screens::{
@@ -22,7 +22,7 @@ pub async fn run_tui() -> Result<()> {
 
     // Setup terminal
     let mut terminal = setup_terminal().map_err(|e| {
-        crate::error::YtdlError::Other(format!("Failed to setup terminal: {}", e))
+        crate::shared::YtdlError::Other(format!("Failed to setup terminal: {}", e))
     })?;
     info!("Terminal initialized in raw mode");
 
@@ -37,7 +37,7 @@ pub async fn run_tui() -> Result<()> {
             let mut app_locked = app.lock().await;
             if let Err(e) = terminal.draw(|frame| render(&mut app_locked, frame)) {
                 error!("Failed to render frame: {}", e);
-                break Err(crate::error::YtdlError::Other(format!(
+                break Err(crate::shared::YtdlError::Other(format!(
                     "Render error: {}",
                     e
                 )));
@@ -59,7 +59,7 @@ pub async fn run_tui() -> Result<()> {
             }
             Err(e) => {
                 error!("Error reading event: {}", e);
-                break Err(crate::error::YtdlError::Other(format!(
+                break Err(crate::shared::YtdlError::Other(format!(
                     "Event error: {}",
                     e
                 )));
@@ -78,7 +78,7 @@ pub async fn run_tui() -> Result<()> {
 
     // Restore terminal
     restore_terminal(&mut terminal).map_err(|e| {
-        crate::error::YtdlError::Other(format!("Failed to restore terminal: {}", e))
+        crate::shared::YtdlError::Other(format!("Failed to restore terminal: {}", e))
     })?;
     info!("Terminal restored");
 

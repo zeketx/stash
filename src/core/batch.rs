@@ -1,8 +1,7 @@
-use crate::config::Config;
-use crate::downloader::Downloader;
-use crate::error::{Result, YtdlError};
-use crate::history::{History, HistoryEntry};
-use crate::utils::validate_youtube_url;
+use crate::cli::Config;
+use crate::core::{History, HistoryEntry};
+use crate::infra::Downloader;
+use crate::shared::{validate_youtube_url, Result, YtdlError};
 use futures::stream::{self, StreamExt};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;

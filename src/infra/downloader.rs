@@ -1,4 +1,4 @@
-use crate::error::{Result, YtdlError};
+use crate::shared::{Result, YtdlError};
 use indicatif::{ProgressBar, ProgressStyle};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -34,8 +34,8 @@ pub struct VideoMetadata {
 
 impl VideoMetadata {
     /// Convert to display-friendly format used by TUI
-    pub fn to_display_info(&self) -> crate::ui::app::VideoInfo {
-        crate::ui::app::VideoInfo {
+    pub fn to_display_info(&self) -> crate::tui::app::VideoInfo {
+        crate::tui::app::VideoInfo {
             title: self.title.clone(),
             uploader: self.uploader.clone(),
             duration: if let Some(dur) = self.duration {

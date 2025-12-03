@@ -1,4 +1,4 @@
-use crate::ui::{
+use crate::tui::{
     app::{DownloadProgress, FormatOption, VideoInfo},
     theme::Theme,
     widgets::progress_bar::{format_bytes, format_duration, format_speed},

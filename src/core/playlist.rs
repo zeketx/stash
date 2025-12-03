@@ -1,5 +1,5 @@
-use crate::downloader::Downloader;
-use crate::error::{Result, YtdlError};
+use crate::infra::downloader::Downloader;
+use crate::shared::{Result, YtdlError};
 use regex::Regex;
 use std::path::PathBuf;
 use tracing::{debug, error, info};

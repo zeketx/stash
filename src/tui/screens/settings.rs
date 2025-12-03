@@ -1,4 +1,4 @@
-use crate::ui::theme::Theme;
+use crate::tui::theme::Theme;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
