@@ -48,7 +48,6 @@ pub struct DownloadHistory {
 
 #[derive(Debug, Clone)]
 pub enum AppState {
-    Welcome,
     UrlInput {
         input: String,
         cursor_pos: usize,
@@ -104,7 +103,13 @@ pub struct App {
 impl App {
     pub fn new() -> Self {
         Self {
-            state: AppState::Welcome,
+            state: AppState::UrlInput {
+                input: String::new(),
+                cursor_pos: 0,
+                is_valid: None,
+                validation_message: String::from("Paste a YouTube URL or press Ctrl+V"),
+                recent_downloads: vec![],
+            },
             theme: Theme::default(),
             should_quit: false,
             spinner: Spinner::new(),
@@ -133,13 +138,9 @@ impl App {
             input: String::new(),
             cursor_pos: 0,
             is_valid: None,
-            validation_message: String::from("Paste a YouTube URL"),
+            validation_message: String::from("Paste a YouTube URL or press Ctrl+V"),
             recent_downloads: vec![],
         };
-    }
-
-    pub fn go_to_welcome(&mut self) {
-        self.state = AppState::Welcome;
     }
 
     pub fn go_to_error(&mut self, error_type: String, message: String, suggestions: Vec<String>) {
@@ -210,7 +211,7 @@ impl App {
             // Basic URL validation
             if input.is_empty() {
                 *is_valid = None;
-                *validation_message = "Paste a YouTube URL".to_string();
+                *validation_message = "Paste a YouTube URL or press Ctrl+V".to_string();
             } else if input.contains("youtube.com") || input.contains("youtu.be") {
                 *is_valid = Some(true);
                 *validation_message = "Valid YouTube URL".to_string();

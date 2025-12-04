@@ -22,19 +22,19 @@ pub fn render_url_input(
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),
+            Constraint::Length(2),
             Constraint::Length(5),
-            Constraint::Length(3),
+            Constraint::Length(2),
             Constraint::Min(5),
-            Constraint::Length(3),
+            Constraint::Length(2),
         ])
         .split(area);
 
-    // Title
-    let title = Paragraph::new("Paste YouTube URL")
-        .style(Style::default().fg(theme.primary).add_modifier(Modifier::BOLD))
+    // Conversational greeting
+    let greeting = Paragraph::new("What would you like to download today?")
+        .style(Style::default().fg(theme.foreground))
         .alignment(Alignment::Center);
-    frame.render_widget(title, chunks[0]);
+    frame.render_widget(greeting, chunks[0]);
 
     // Input box
     let input_style = match is_valid {
@@ -50,7 +50,7 @@ pub fn render_url_input(
     };
 
     let placeholder = if input.is_empty() {
-        "https://www.youtube.com/watch?v=..."
+        "Paste a YouTube URL or press Ctrl+V"
     } else {
         ""
     };
@@ -80,17 +80,17 @@ pub fn render_url_input(
         }
     }
 
-    // Validation message
-    let validation_style = match is_valid {
-        Some(true) => Style::default().fg(theme.success),
-        Some(false) => Style::default().fg(theme.error),
-        None => Style::default().fg(theme.secondary),
+    // Hint text / Validation message
+    let (hint_text, hint_style) = match is_valid {
+        Some(true) => (validation_message, Style::default().fg(theme.success)),
+        Some(false) => (validation_message, Style::default().fg(theme.error)),
+        None => ("Press Enter to continue or paste a URL to start", Style::default().fg(theme.secondary)),
     };
 
-    let validation = Paragraph::new(validation_message)
-        .style(validation_style)
+    let hint = Paragraph::new(hint_text)
+        .style(hint_style)
         .alignment(Alignment::Center);
-    frame.render_widget(validation, chunks[2]);
+    frame.render_widget(hint, chunks[2]);
 
     // Recent downloads
     if !recent_downloads.is_empty() {
@@ -126,18 +126,22 @@ pub fn render_url_input(
         frame.render_widget(list, chunks[3]);
     }
 
-    // Help text
+    // Footer help text
     let help_text = vec![Line::from(vec![
         Span::styled("[Enter] ", Style::default().fg(theme.success).add_modifier(Modifier::BOLD)),
         Span::raw("Continue  "),
         Span::styled("[Ctrl+U] ", Style::default().fg(theme.info).add_modifier(Modifier::BOLD)),
-        Span::raw("Clear  "),
-        Span::styled("[Esc] ", Style::default().fg(theme.error).add_modifier(Modifier::BOLD)),
-        Span::raw("Back"),
+        Span::raw("Clear  │  "),
+        Span::styled("[S] ", Style::default().fg(theme.info).add_modifier(Modifier::BOLD)),
+        Span::raw("Settings  "),
+        Span::styled("[H] ", Style::default().fg(theme.info).add_modifier(Modifier::BOLD)),
+        Span::raw("Help  "),
+        Span::styled("[Q] ", Style::default().fg(theme.error).add_modifier(Modifier::BOLD)),
+        Span::raw("Quit"),
     ])];
 
     let help = Paragraph::new(help_text)
         .alignment(Alignment::Center)
-        .style(Style::default().fg(theme.foreground));
+        .style(Style::default().fg(theme.secondary));
     frame.render_widget(help, chunks[4]);
 }

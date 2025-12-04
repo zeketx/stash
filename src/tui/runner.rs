@@ -6,7 +6,7 @@ use crate::tui::{
     events::{is_back_key, is_quit_key, Event, EventHandler},
     screens::{
         render_downloading, render_error, render_fetching, render_format_selection,
-        render_help, render_settings, render_success, render_url_input, render_welcome,
+        render_help, render_settings, render_success, render_url_input,
     },
     terminal::{restore_terminal, setup_panic_hook, setup_terminal},
 };
@@ -87,11 +87,6 @@ pub async fn run_tui() -> Result<()> {
 
 fn render(app: &mut App, frame: &mut ratatui::Frame) {
     match &app.state {
-        AppState::Welcome => {
-            let banner_color = app.color_cycle.current_color();
-            let pulse_intensity = app.pulsing_selection.intensity();
-            render_welcome(frame, &app.theme, banner_color, pulse_intensity);
-        }
         AppState::UrlInput {
             input,
             cursor_pos,
@@ -175,15 +170,7 @@ async fn handle_event(app: Arc<Mutex<App>>, event: Event) -> Result<()> {
                 return Ok(());
             }
 
-            // Global help key (h or ?) - but NOT in URL input where user might be typing
-            if matches!(key.code, KeyCode::Char('h') | KeyCode::Char('?')) && key.modifiers.is_empty() {
-                let mut app_locked = app.lock().await;
-                // Don't open help if already in help, settings, or URL input
-                if !matches!(app_locked.state, AppState::Help { .. } | AppState::Settings { .. } | AppState::UrlInput { .. }) {
-                    app_locked.go_to_help();
-                    return Ok(());
-                }
-            }
+            // Global help key is now handled per-state to avoid conflicts with typing
 
             // State-specific key handling
             let current_state = {
@@ -192,13 +179,11 @@ async fn handle_event(app: Arc<Mutex<App>>, event: Event) -> Result<()> {
             };
 
             match &current_state {
-                AppState::Welcome => {
+                AppState::UrlInput {
+                    input, cursor_pos, ..
+                } => {
                     match key.code {
-                        KeyCode::Enter => {
-                            let mut app_locked = app.lock().await;
-                            app_locked.go_to_url_input();
-                        }
-                        KeyCode::Char('s') | KeyCode::Char('S') => {
+                        KeyCode::Char('s') | KeyCode::Char('S') if key.modifiers.is_empty() => {
                             let mut app_locked = app.lock().await;
                             app_locked.go_to_settings(
                                 "./downloads".to_string(),
@@ -206,14 +191,11 @@ async fn handle_event(app: Arc<Mutex<App>>, event: Event) -> Result<()> {
                                 3,
                             );
                         }
-                        _ => {}
-                    }
-                }
-                AppState::UrlInput {
-                    input, cursor_pos, ..
-                } => {
-                    match key.code {
-                        KeyCode::Char(c) if key.modifiers.is_empty() => {
+                        KeyCode::Char('h') | KeyCode::Char('H') if key.modifiers.is_empty() => {
+                            let mut app_locked = app.lock().await;
+                            app_locked.go_to_help();
+                        }
+                        KeyCode::Char(c) if key.modifiers.is_empty() && !matches!(c, 's' | 'S' | 'h' | 'H' | 'q' | 'Q') => {
                             let mut new_input = input.clone();
                             new_input.insert(*cursor_pos, c);
                             let mut app_locked = app.lock().await;
@@ -240,10 +222,6 @@ async fn handle_event(app: Arc<Mutex<App>>, event: Event) -> Result<()> {
                                 // Fetch real video info
                                 fetch_video_info(&mut *app.lock().await, input.clone()).await;
                             }
-                        }
-                        KeyCode::Esc => {
-                            let mut app_locked = app.lock().await;
-                            app_locked.go_to_welcome();
                         }
                         _ => {}
                     }
