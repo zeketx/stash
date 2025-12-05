@@ -27,7 +27,8 @@ fn test_spinner_frame_changes() {
     let mut spinner = Spinner::new();
     let frame1 = spinner.frame().to_string();
     
-    // Wait for more than the frame duration (80ms)
+    // Wait for more than the frame duration (80ms) to allow the spinner to advance
+    // Note: sleep is necessary here to test time-based animation behavior
     thread::sleep(Duration::from_millis(100));
     
     // Tick the spinner
@@ -52,7 +53,8 @@ fn test_app_tick_updates_spinner() {
     let mut app = App::new();
     let frame1 = app.spinner.frame().to_string();
     
-    // Wait for more than the frame duration
+    // Wait for more than the frame duration to allow the spinner to advance
+    // Note: sleep is necessary here to test time-based animation behavior
     thread::sleep(Duration::from_millis(100));
     
     // Call app.tick() which should update the spinner
