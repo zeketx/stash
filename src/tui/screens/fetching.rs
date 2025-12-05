@@ -1,4 +1,5 @@
 use crate::tui::theme::Theme;
+use crate::tui::widgets::Spinner;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Modifier, Style},
@@ -6,9 +7,8 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
-use std::time::{SystemTime, UNIX_EPOCH};
 
-pub fn render_fetching(frame: &mut Frame, theme: &Theme, url: &str) {
+pub fn render_fetching(frame: &mut Frame, theme: &Theme, url: &str, spinner: &Spinner) {
     let area = frame.area();
 
     let chunks = Layout::default()
@@ -42,11 +42,11 @@ pub fn render_fetching(frame: &mut Frame, theme: &Theme, url: &str) {
         .split(inner);
 
     // Spinner animation
-    let spinner = get_spinner();
+    let spinner_frame = spinner.frame();
     let spinner_text = vec![
         Line::from(""),
         Line::from(vec![Span::styled(
-            spinner,
+            spinner_frame,
             Style::default().fg(theme.info).add_modifier(Modifier::BOLD),
         )]),
         Line::from(""),
@@ -80,14 +80,4 @@ pub fn render_fetching(frame: &mut Frame, theme: &Theme, url: &str) {
     ]))
     .alignment(Alignment::Center);
     frame.render_widget(footer, chunks[2]);
-}
-
-fn get_spinner() -> &'static str {
-    let spinners = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis();
-    let index = (now / 80) % spinners.len() as u128;
-    spinners[index as usize]
 }

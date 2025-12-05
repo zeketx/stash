@@ -105,7 +105,7 @@ fn render(app: &mut App, frame: &mut ratatui::Frame) {
             );
         }
         AppState::FetchingInfo { url } => {
-            render_fetching(frame, &app.theme, url);
+            render_fetching(frame, &app.theme, url, &app.spinner);
         }
         AppState::FormatSelection {
             video_info,
