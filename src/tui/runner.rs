@@ -216,11 +216,27 @@ async fn handle_event(app: Arc<Mutex<App>>, event: Event) -> Result<()> {
                         KeyCode::Enter => {
                             // Validate and proceed
                             if input.contains("youtube.com") || input.contains("youtu.be") {
-                                let mut app_locked = app.lock().await;
-                                app_locked.start_fetching_info(input.clone());
-                                drop(app_locked); // Release lock before async call
-                                // Fetch real video info
-                                fetch_video_info(&mut *app.lock().await, input.clone()).await;
+                                // Update message immediately (synchronous, shows right away)
+                                {
+                                    let mut app_locked = app.lock().await;
+                                    app_locked.start_url_fetch();
+                                }
+
+                                // Small yield to let the render happen
+                                tokio::task::yield_now().await;
+
+                                // Start async fetch (this takes ~10 seconds)
+                                let input_clone = input.clone();
+                                let app_clone = Arc::clone(&app);
+
+                                // Spawn fetch as background task so UI stays responsive
+                                tokio::spawn(async move {
+                                    let mut app_locked = app_clone.lock().await;
+                                    app_locked.start_fetching_info(input_clone.clone());
+                                    drop(app_locked);
+
+                                    fetch_video_info(&mut *app_clone.lock().await, input_clone).await;
+                                });
                             }
                         }
                         _ => {}

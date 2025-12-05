@@ -222,6 +222,12 @@ impl App {
         }
     }
 
+    pub fn start_url_fetch(&mut self) {
+        if let AppState::UrlInput { ref mut validation_message, .. } = self.state {
+            *validation_message = "Fetching video information...".to_string();
+        }
+    }
+
     pub fn start_fetching_info(&mut self, url: String) {
         self.state = AppState::FetchingInfo { url };
     }

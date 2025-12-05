@@ -33,7 +33,7 @@ pub fn render_url_input(
     // Conversational greeting
     let greeting = Paragraph::new("What would you like to download today?")
         .style(Style::default().fg(theme.foreground))
-        .alignment(Alignment::Center);
+        .alignment(Alignment::Left);
     frame.render_widget(greeting, chunks[0]);
 
     // Input box
@@ -80,16 +80,22 @@ pub fn render_url_input(
         }
     }
 
-    // Hint text / Validation message
-    let (hint_text, hint_style) = match is_valid {
-        Some(true) => (validation_message, Style::default().fg(theme.success)),
-        Some(false) => (validation_message, Style::default().fg(theme.error)),
-        None => ("Press Enter to continue or paste a URL to start", Style::default().fg(theme.secondary)),
+    // Hint text / Validation message with spinner for "Fetching..."
+    let (hint_text, hint_style) = if validation_message.contains("Fetching") {
+        // Show spinner animation when fetching
+        let spinner = get_spinner();
+        (format!("{} {}", validation_message, spinner), Style::default().fg(theme.info))
+    } else {
+        match is_valid {
+            Some(true) => (validation_message.to_string(), Style::default().fg(theme.success)),
+            Some(false) => (validation_message.to_string(), Style::default().fg(theme.error)),
+            None => ("Press Enter to continue or paste a URL to start".to_string(), Style::default().fg(theme.secondary)),
+        }
     };
 
     let hint = Paragraph::new(hint_text)
         .style(hint_style)
-        .alignment(Alignment::Center);
+        .alignment(Alignment::Left);
     frame.render_widget(hint, chunks[2]);
 
     // Recent downloads
@@ -141,7 +147,18 @@ pub fn render_url_input(
     ])];
 
     let help = Paragraph::new(help_text)
-        .alignment(Alignment::Center)
+        .alignment(Alignment::Left)
         .style(Style::default().fg(theme.secondary));
     frame.render_widget(help, chunks[4]);
+}
+
+fn get_spinner() -> &'static str {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let spinners = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
+    let index = (now / 80) % spinners.len() as u128;
+    spinners[index as usize]
 }

@@ -45,7 +45,8 @@ async fn run() -> Result<()> {
     let logger_config = LoggerConfig::new()
         .with_level(log_level)
         .with_file_logging(cli.log_file)
-        .with_json_format(cli.log_json);
+        .with_json_format(cli.log_json)
+        .with_tui_mode(cli.interactive);
 
     let _guard = init_logger(logger_config).expect("Failed to initialize logger");
 
