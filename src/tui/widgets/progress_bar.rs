@@ -19,7 +19,7 @@ pub fn render_progress_bar(
             Block::default()
                 .borders(Borders::ALL)
                 .title(title)
-                .border_style(Style::default().fg(Color::DarkGray)),
+                .border_style(Style::default().fg(Color::Rgb(160, 160, 160))),
         )
         .gauge_style(Style::default().fg(color))
         .ratio(percentage / 100.0)

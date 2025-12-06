@@ -22,7 +22,7 @@ pub fn render_banner<'a>(color: Color) -> Paragraph<'a> {
         Line::from(""),
         Line::from(vec![Span::styled(
             "YouTube Downloader",
-            Style::default().fg(Color::White),
+            Style::default().fg(Color::Rgb(160, 160, 160)),
         )]),
     ];
 

@@ -23,7 +23,7 @@ pub fn render_success(frame: &mut Frame, theme: &Theme, info: &DownloadSuccess) 
 
     // Title
     let title = Paragraph::new("Download Complete!")
-        .style(Style::default().fg(theme.success).add_modifier(Modifier::BOLD))
+        .style(Style::default().fg(theme.color).add_modifier(Modifier::BOLD))
         .alignment(Alignment::Center);
     frame.render_widget(title, chunks[0]);
 
@@ -31,7 +31,7 @@ pub fn render_success(frame: &mut Frame, theme: &Theme, info: &DownloadSuccess) 
     let icon_text = vec![Line::from(vec![Span::styled(
         "✓",
         Style::default()
-            .fg(theme.success)
+            .fg(theme.color)
             .add_modifier(Modifier::BOLD),
     )])];
 
@@ -41,7 +41,7 @@ pub fn render_success(frame: &mut Frame, theme: &Theme, info: &DownloadSuccess) 
     // File information
     let info_block = Block::default()
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(theme.success))
+        .border_style(Style::default().fg(theme.color))
         .title(" File Information ");
 
     let info_text = vec![
@@ -49,7 +49,7 @@ pub fn render_success(frame: &mut Frame, theme: &Theme, info: &DownloadSuccess) 
             Span::styled(
                 "Filename: ",
                 Style::default()
-                    .fg(theme.secondary)
+                    .fg(theme.color)
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(&info.filename),
@@ -59,7 +59,7 @@ pub fn render_success(frame: &mut Frame, theme: &Theme, info: &DownloadSuccess) 
             Span::styled(
                 "Size: ",
                 Style::default()
-                    .fg(theme.secondary)
+                    .fg(theme.color)
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(&info.file_size),
@@ -69,7 +69,7 @@ pub fn render_success(frame: &mut Frame, theme: &Theme, info: &DownloadSuccess) 
             Span::styled(
                 "Duration: ",
                 Style::default()
-                    .fg(theme.secondary)
+                    .fg(theme.color)
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(&info.duration),
@@ -79,7 +79,7 @@ pub fn render_success(frame: &mut Frame, theme: &Theme, info: &DownloadSuccess) 
             Span::styled(
                 "Location: ",
                 Style::default()
-                    .fg(theme.secondary)
+                    .fg(theme.color)
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw(info.save_location.to_string_lossy().to_string()),
@@ -88,13 +88,13 @@ pub fn render_success(frame: &mut Frame, theme: &Theme, info: &DownloadSuccess) 
 
     let info_para = Paragraph::new(info_text)
         .block(info_block)
-        .style(Style::default().fg(theme.foreground));
+        .style(Style::default().fg(theme.color));
     frame.render_widget(info_para, chunks[2]);
 
     // Quick actions
     let actions_block = Block::default()
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(theme.border))
+        .border_style(Style::default().fg(theme.color))
         .title(" Quick Actions ");
 
     let actions_text = vec![
@@ -103,7 +103,7 @@ pub fn render_success(frame: &mut Frame, theme: &Theme, info: &DownloadSuccess) 
             Span::styled(
                 "[O] ",
                 Style::default()
-                    .fg(theme.info)
+                    .fg(theme.color)
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw("Open file"),
@@ -113,7 +113,7 @@ pub fn render_success(frame: &mut Frame, theme: &Theme, info: &DownloadSuccess) 
             Span::styled(
                 "[F] ",
                 Style::default()
-                    .fg(theme.info)
+                    .fg(theme.color)
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw("Open folder"),
@@ -123,7 +123,7 @@ pub fn render_success(frame: &mut Frame, theme: &Theme, info: &DownloadSuccess) 
             Span::styled(
                 "[N] ",
                 Style::default()
-                    .fg(theme.success)
+                    .fg(theme.color)
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw("New download"),
@@ -133,7 +133,7 @@ pub fn render_success(frame: &mut Frame, theme: &Theme, info: &DownloadSuccess) 
             Span::styled(
                 "[Q] ",
                 Style::default()
-                    .fg(theme.error)
+                    .fg(theme.color)
                     .add_modifier(Modifier::BOLD),
             ),
             Span::raw("Quit"),
@@ -143,13 +143,13 @@ pub fn render_success(frame: &mut Frame, theme: &Theme, info: &DownloadSuccess) 
     let actions_para = Paragraph::new(actions_text)
         .block(actions_block)
         .alignment(Alignment::Center)
-        .style(Style::default().fg(theme.foreground));
+        .style(Style::default().fg(theme.color));
     frame.render_widget(actions_para, chunks[3]);
 
     // Footer
     let footer = Paragraph::new(Line::from(vec![Span::styled(
         "Press a key to continue",
-        Style::default().fg(theme.secondary),
+        Style::default().fg(theme.color),
     )]))
     .alignment(Alignment::Center);
     frame.render_widget(footer, chunks[4]);

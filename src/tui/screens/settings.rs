@@ -50,37 +50,37 @@ pub fn render_settings(
     let title = Paragraph::new(vec![Line::from(vec![Span::styled(
         "⚙ Settings",
         Style::default()
-            .fg(theme.primary)
+            .fg(theme.color)
             .add_modifier(Modifier::BOLD),
     )])])
     .alignment(Alignment::Center)
     .block(
         Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(theme.border)),
+            .border_style(Style::default().fg(theme.color)),
     );
     frame.render_widget(title, chunks[0]);
 
     // Settings items
     let items = vec![
         ListItem::new(Line::from(vec![
-            Span::styled("Output Directory: ", Style::default().fg(theme.info)),
+            Span::styled("Output Directory: ", Style::default().fg(theme.color)),
             Span::raw(&settings.output_dir),
         ])),
         ListItem::new(Line::from(vec![
-            Span::styled("Default Quality: ", Style::default().fg(theme.info)),
+            Span::styled("Default Quality: ", Style::default().fg(theme.color)),
             Span::raw(&settings.quality),
         ])),
         ListItem::new(Line::from(vec![
-            Span::styled("Concurrent Downloads: ", Style::default().fg(theme.info)),
+            Span::styled("Concurrent Downloads: ", Style::default().fg(theme.color)),
             Span::raw(settings.concurrent_downloads.to_string()),
         ])),
         ListItem::new(Line::from(vec![
-            Span::styled("Audio Format: ", Style::default().fg(theme.info)),
+            Span::styled("Audio Format: ", Style::default().fg(theme.color)),
             Span::raw(&settings.audio_format),
         ])),
         ListItem::new(Line::from(vec![
-            Span::styled("Save Settings", Style::default().fg(theme.success).add_modifier(Modifier::BOLD)),
+            Span::styled("Save Settings", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
         ])),
     ];
 
@@ -89,11 +89,11 @@ pub fn render_settings(
             Block::default()
                 .borders(Borders::ALL)
                 .title("Settings")
-                .border_style(Style::default().fg(theme.border)),
+                .border_style(Style::default().fg(theme.color)),
         )
         .highlight_style(
             Style::default()
-                .fg(theme.highlight)
+                .fg(theme.color)
                 .add_modifier(Modifier::BOLD)
                 .add_modifier(Modifier::REVERSED),
         )
@@ -106,16 +106,16 @@ pub fn render_settings(
     // Instructions
     let instructions = Paragraph::new(vec![
         Line::from(vec![
-            Span::styled("↑/↓", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+            Span::styled("↑/↓", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(" - Navigate  "),
-            Span::styled("Enter", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+            Span::styled("Enter", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(" - Edit  "),
-            Span::styled("Esc", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+            Span::styled("Esc", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(" - Back"),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("Note: ", Style::default().fg(theme.info).add_modifier(Modifier::BOLD)),
+            Span::styled("Note: ", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw("Settings will be saved to config file when you select 'Save Settings'"),
         ]),
     ])
@@ -123,7 +123,7 @@ pub fn render_settings(
     .block(
         Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(theme.border)),
+            .border_style(Style::default().fg(theme.color)),
     );
     frame.render_widget(instructions, chunks[2]);
 }
