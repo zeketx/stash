@@ -1,4 +1,4 @@
-use crate::tui::{app::DownloadHistory, theme::Theme};
+use crate::tui::{app::DownloadHistory, theme::Theme, widgets::Spinner};
 use chrono::Local;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
@@ -16,6 +16,7 @@ pub fn render_url_input(
     is_valid: Option<bool>,
     validation_message: &str,
     recent_downloads: &[DownloadHistory],
+    spinner: &Spinner,
 ) {
     let area = frame.area();
 
@@ -83,8 +84,8 @@ pub fn render_url_input(
     // Hint text / Validation message with spinner for "Fetching..."
     let (hint_text, hint_style) = if validation_message.contains("Fetching") {
         // Show spinner animation when fetching
-        let spinner = get_spinner();
-        (format!("{} {}", validation_message, spinner), Style::default().fg(theme.info))
+        let spinner_frame = spinner.frame();
+        (format!("{} {}", validation_message, spinner_frame), Style::default().fg(theme.info))
     } else {
         match is_valid {
             Some(true) => (validation_message.to_string(), Style::default().fg(theme.success)),
@@ -150,15 +151,4 @@ pub fn render_url_input(
         .alignment(Alignment::Left)
         .style(Style::default().fg(theme.secondary));
     frame.render_widget(help, chunks[4]);
-}
-
-fn get_spinner() -> &'static str {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let spinners = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis();
-    let index = (now / 80) % spinners.len() as u128;
-    spinners[index as usize]
 }

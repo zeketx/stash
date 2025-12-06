@@ -102,6 +102,7 @@ fn render(app: &mut App, frame: &mut ratatui::Frame) {
                 *is_valid,
                 validation_message,
                 recent_downloads,
+                &app.spinner,
             );
         }
         AppState::FetchingInfo { url } => {
