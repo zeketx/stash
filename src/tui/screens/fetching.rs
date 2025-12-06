@@ -22,15 +22,14 @@ pub fn render_fetching(frame: &mut Frame, theme: &Theme, url: &str) {
 
     // Title
     let title = Paragraph::new("Fetching Video Information")
-        .style(Style::default().fg(theme.primary).add_modifier(Modifier::BOLD))
+        .style(Style::default().fg(theme.color).add_modifier(Modifier::BOLD))
         .alignment(Alignment::Center);
     frame.render_widget(title, chunks[0]);
 
     // Main content
     let main_block = Block::default()
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(theme.border))
-        .style(Style::default().bg(theme.background));
+        .border_style(Style::default().fg(theme.color));
 
     let inner = main_block.inner(chunks[1]);
     frame.render_widget(main_block, chunks[1]);
@@ -47,7 +46,7 @@ pub fn render_fetching(frame: &mut Frame, theme: &Theme, url: &str) {
         Line::from(""),
         Line::from(vec![Span::styled(
             spinner,
-            Style::default().fg(theme.info).add_modifier(Modifier::BOLD),
+            Style::default().fg(theme.color).add_modifier(Modifier::BOLD),
         )]),
         Line::from(""),
     ];
@@ -58,24 +57,24 @@ pub fn render_fetching(frame: &mut Frame, theme: &Theme, url: &str) {
     // URL display
     let url_text = vec![
         Line::from(vec![
-            Span::styled("URL: ", Style::default().fg(theme.secondary).add_modifier(Modifier::BOLD)),
+            Span::styled("URL: ", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(url),
         ]),
         Line::from(""),
         Line::from(vec![Span::styled(
             "Please wait...",
-            Style::default().fg(theme.secondary),
+            Style::default().fg(theme.color),
         )]),
     ];
 
     let url_widget = Paragraph::new(url_text)
         .alignment(Alignment::Center)
-        .style(Style::default().fg(theme.foreground));
+        .style(Style::default().fg(theme.color));
     frame.render_widget(url_widget, content_chunks[1]);
 
     // Footer
     let footer = Paragraph::new(Line::from(vec![
-        Span::styled("[Esc] ", Style::default().fg(theme.error).add_modifier(Modifier::BOLD)),
+        Span::styled("[Esc] ", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
         Span::raw("Cancel"),
     ]))
     .alignment(Alignment::Center);

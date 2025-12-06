@@ -32,21 +32,21 @@ pub fn render_url_input(
 
     // Conversational greeting
     let greeting = Paragraph::new("What would you like to download today?")
-        .style(Style::default().fg(theme.foreground))
+        .style(Style::default().fg(theme.color))
         .alignment(Alignment::Left);
     frame.render_widget(greeting, chunks[0]);
 
     // Input box
     let input_style = match is_valid {
-        Some(true) => Style::default().fg(theme.success),
-        Some(false) => Style::default().fg(theme.error),
-        None => Style::default().fg(theme.foreground),
+        Some(true) => Style::default().fg(theme.color),
+        Some(false) => Style::default().fg(theme.color),
+        None => Style::default().fg(theme.color),
     };
 
     let border_style = match is_valid {
-        Some(true) => Style::default().fg(theme.success),
-        Some(false) => Style::default().fg(theme.error),
-        None => Style::default().fg(theme.border),
+        Some(true) => Style::default().fg(theme.color),
+        Some(false) => Style::default().fg(theme.color),
+        None => Style::default().fg(theme.color),
     };
 
     let placeholder = if input.is_empty() {
@@ -84,12 +84,12 @@ pub fn render_url_input(
     let (hint_text, hint_style) = if validation_message.contains("Fetching") {
         // Show spinner animation when fetching
         let spinner = get_spinner();
-        (format!("{} {}", validation_message, spinner), Style::default().fg(theme.info))
+        (format!("{} {}", validation_message, spinner), Style::default().fg(theme.color))
     } else {
         match is_valid {
-            Some(true) => (validation_message.to_string(), Style::default().fg(theme.success)),
-            Some(false) => (validation_message.to_string(), Style::default().fg(theme.error)),
-            None => ("Press Enter to continue or paste a URL to start".to_string(), Style::default().fg(theme.secondary)),
+            Some(true) => (validation_message.to_string(), Style::default().fg(theme.color)),
+            Some(false) => (validation_message.to_string(), Style::default().fg(theme.color)),
+            None => ("Press Enter to continue or paste a URL to start".to_string(), Style::default().fg(theme.color)),
         }
     };
 
@@ -102,7 +102,7 @@ pub fn render_url_input(
     if !recent_downloads.is_empty() {
         let recent_block = Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(theme.border))
+            .border_style(Style::default().fg(theme.color))
             .title(" Recent Downloads ");
 
         let items: Vec<ListItem> = recent_downloads
@@ -120,9 +120,9 @@ pub fn render_url_input(
                 };
 
                 let line = Line::from(vec![
-                    Span::styled(&download.title, Style::default().fg(theme.foreground)),
+                    Span::styled(&download.title, Style::default().fg(theme.color)),
                     Span::raw("  "),
-                    Span::styled(time_str, Style::default().fg(theme.secondary)),
+                    Span::styled(time_str, Style::default().fg(theme.color)),
                 ]);
                 ListItem::new(line)
             })
@@ -134,21 +134,21 @@ pub fn render_url_input(
 
     // Footer help text
     let help_text = vec![Line::from(vec![
-        Span::styled("[Enter] ", Style::default().fg(theme.success).add_modifier(Modifier::BOLD)),
+        Span::styled("[Enter] ", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
         Span::raw("Continue  "),
-        Span::styled("[Ctrl+U] ", Style::default().fg(theme.info).add_modifier(Modifier::BOLD)),
+        Span::styled("[Ctrl+U] ", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
         Span::raw("Clear  │  "),
-        Span::styled("[S] ", Style::default().fg(theme.info).add_modifier(Modifier::BOLD)),
+        Span::styled("[S] ", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
         Span::raw("Settings  "),
-        Span::styled("[H] ", Style::default().fg(theme.info).add_modifier(Modifier::BOLD)),
+        Span::styled("[H] ", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
         Span::raw("Help  "),
-        Span::styled("[Q] ", Style::default().fg(theme.error).add_modifier(Modifier::BOLD)),
+        Span::styled("[Q] ", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
         Span::raw("Quit"),
     ])];
 
     let help = Paragraph::new(help_text)
         .alignment(Alignment::Left)
-        .style(Style::default().fg(theme.secondary));
+        .style(Style::default().fg(theme.color));
     frame.render_widget(help, chunks[4]);
 }
 

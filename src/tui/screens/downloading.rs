@@ -33,14 +33,14 @@ pub fn render_downloading(
 
     // Title
     let title = Paragraph::new("Downloading")
-        .style(Style::default().fg(theme.primary).add_modifier(Modifier::BOLD))
+        .style(Style::default().fg(theme.color).add_modifier(Modifier::BOLD))
         .alignment(Alignment::Center);
     frame.render_widget(title, chunks[0]);
 
     // Video title
     let video_title_block = Block::default()
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(theme.border))
+        .border_style(Style::default().fg(theme.color))
         .title(" Video ");
 
     let video_title_text = vec![Line::from(vec![Span::raw(&video_info.title)])];
@@ -48,14 +48,14 @@ pub fn render_downloading(
     let video_title_para = Paragraph::new(video_title_text)
         .block(video_title_block)
         .alignment(Alignment::Center)
-        .style(Style::default().fg(theme.foreground));
+        .style(Style::default().fg(theme.color));
     frame.render_widget(video_title_para, chunks[1]);
 
     // Progress bar
     let progress_color = if progress.percentage >= 100.0 {
-        theme.success
+        theme.color
     } else {
-        theme.info
+        theme.color
     };
 
     let label = format!("{:.1}%", progress.percentage);
@@ -64,7 +64,7 @@ pub fn render_downloading(
             Block::default()
                 .borders(Borders::ALL)
                 .title(" Progress ")
-                .border_style(Style::default().fg(theme.border)),
+                .border_style(Style::default().fg(theme.color)),
         )
         .gauge_style(Style::default().fg(progress_color))
         .ratio(progress.percentage / 100.0)
@@ -75,7 +75,7 @@ pub fn render_downloading(
     // Statistics
     let stats_block = Block::default()
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(theme.border))
+        .border_style(Style::default().fg(theme.color))
         .title(" Statistics ");
 
     let downloaded = format_bytes(progress.downloaded_bytes);
@@ -89,31 +89,31 @@ pub fn render_downloading(
 
     let stats_text = vec![
         Line::from(vec![
-            Span::styled("Downloaded: ", Style::default().fg(theme.secondary).add_modifier(Modifier::BOLD)),
+            Span::styled("Downloaded: ", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(format!("{} / {}", downloaded, total)),
         ]),
         Line::from(vec![
-            Span::styled("Speed: ", Style::default().fg(theme.secondary).add_modifier(Modifier::BOLD)),
+            Span::styled("Speed: ", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(speed),
         ]),
         Line::from(vec![
-            Span::styled("Elapsed: ", Style::default().fg(theme.secondary).add_modifier(Modifier::BOLD)),
+            Span::styled("Elapsed: ", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(elapsed),
         ]),
         Line::from(vec![
-            Span::styled("ETA: ", Style::default().fg(theme.secondary).add_modifier(Modifier::BOLD)),
+            Span::styled("ETA: ", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(eta),
         ]),
     ];
 
     let stats_para = Paragraph::new(stats_text)
         .block(stats_block)
-        .style(Style::default().fg(theme.foreground));
+        .style(Style::default().fg(theme.color));
     frame.render_widget(stats_para, chunks[3]);
 
     // Footer
     let footer = Paragraph::new(Line::from(vec![
-        Span::styled("[Ctrl+C] ", Style::default().fg(theme.error).add_modifier(Modifier::BOLD)),
+        Span::styled("[Ctrl+C] ", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
         Span::raw("Cancel Download"),
     ]))
     .alignment(Alignment::Center);

@@ -1,6 +1,6 @@
 use crate::tui::screens::SettingsState;
 use crate::tui::theme::Theme;
-use crate::tui::widgets::{BlinkingCursor, CheckmarkAnimation, ColorCycle, PulsingSelection, Spinner};
+use crate::tui::widgets::{BlinkingCursor, CheckmarkAnimation, PulsingSelection, Spinner};
 use chrono::{DateTime, Local};
 use std::path::PathBuf;
 
@@ -96,7 +96,6 @@ pub struct App {
     pub spinner: Spinner,
     pub cursor: BlinkingCursor,
     pub checkmark: CheckmarkAnimation,
-    pub color_cycle: ColorCycle,
     pub pulsing_selection: PulsingSelection,
 }
 
@@ -115,7 +114,6 @@ impl App {
             spinner: Spinner::new(),
             cursor: BlinkingCursor::new(),
             checkmark: CheckmarkAnimation::new(),
-            color_cycle: ColorCycle::new(),
             pulsing_selection: PulsingSelection::new(),
         }
     }
@@ -125,7 +123,6 @@ impl App {
         self.spinner.tick();
         self.cursor.tick();
         self.checkmark.tick();
-        self.color_cycle.tick();
         self.pulsing_selection.tick();
     }
 

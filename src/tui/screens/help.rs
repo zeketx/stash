@@ -24,14 +24,14 @@ pub fn render_help(frame: &mut Frame, theme: &Theme) {
     let title = Paragraph::new(vec![Line::from(vec![Span::styled(
         "Help & Keyboard Shortcuts",
         Style::default()
-            .fg(theme.primary)
+            .fg(theme.color)
             .add_modifier(Modifier::BOLD),
     )])])
     .alignment(Alignment::Center)
     .block(
         Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(theme.border)),
+            .border_style(Style::default().fg(theme.color)),
     );
     frame.render_widget(title, chunks[0]);
 
@@ -44,53 +44,53 @@ pub fn render_help(frame: &mut Frame, theme: &Theme) {
     // Global shortcuts
     let global_shortcuts = vec![
         Line::from(vec![
-            Span::styled("Global Shortcuts", Style::default().fg(theme.primary).add_modifier(Modifier::BOLD)),
+            Span::styled("Global Shortcuts", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("q", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+            Span::styled("q", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(" - Quit application"),
         ]),
         Line::from(vec![
-            Span::styled("h or ?", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+            Span::styled("h or ?", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(" - Show this help screen"),
         ]),
         Line::from(vec![
-            Span::styled("  Note:", Style::default().fg(theme.secondary)),
+            Span::styled("  Note:", Style::default().fg(theme.color)),
             Span::raw(" Help key disabled in URL input to allow typing"),
         ]),
         Line::from(vec![
-            Span::styled("Esc", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+            Span::styled("Esc", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(" - Go back/Cancel"),
         ]),
         Line::from(vec![
-            Span::styled("Ctrl+C", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+            Span::styled("Ctrl+C", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(" - Interrupt/Quit"),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("Welcome Screen", Style::default().fg(theme.primary).add_modifier(Modifier::BOLD)),
+            Span::styled("Welcome Screen", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("Enter", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+            Span::styled("Enter", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(" - Start new download"),
         ]),
         Line::from(vec![
-            Span::styled("s", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+            Span::styled("s", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(" - Open settings"),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("URL Input Screen", Style::default().fg(theme.primary).add_modifier(Modifier::BOLD)),
+            Span::styled("URL Input Screen", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("Enter", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+            Span::styled("Enter", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(" - Fetch video info"),
         ]),
         Line::from(vec![
-            Span::styled("Ctrl+U", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+            Span::styled("Ctrl+U", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(" - Clear input"),
         ]),
     ];
@@ -99,7 +99,7 @@ pub fn render_help(frame: &mut Frame, theme: &Theme) {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme.border)),
+                .border_style(Style::default().fg(theme.color)),
         )
         .wrap(Wrap { trim: false });
     frame.render_widget(global_para, content_chunks[0]);
@@ -107,49 +107,49 @@ pub fn render_help(frame: &mut Frame, theme: &Theme) {
     // Context-specific shortcuts
     let context_shortcuts = vec![
         Line::from(vec![
-            Span::styled("Format Selection", Style::default().fg(theme.primary).add_modifier(Modifier::BOLD)),
+            Span::styled("Format Selection", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("↑/↓", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+            Span::styled("↑/↓", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(" - Navigate formats"),
         ]),
         Line::from(vec![
-            Span::styled("Enter", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+            Span::styled("Enter", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(" - Start download"),
         ]),
         Line::from(vec![
-            Span::styled("a", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+            Span::styled("a", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(" - Quick select audio"),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("Success Screen", Style::default().fg(theme.primary).add_modifier(Modifier::BOLD)),
+            Span::styled("Success Screen", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("n", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+            Span::styled("n", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(" - New download"),
         ]),
         Line::from(vec![
-            Span::styled("o", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+            Span::styled("o", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(" - Open file"),
         ]),
         Line::from(vec![
-            Span::styled("f", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+            Span::styled("f", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(" - Open folder"),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("Error Screen", Style::default().fg(theme.primary).add_modifier(Modifier::BOLD)),
+            Span::styled("Error Screen", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
         ]),
         Line::from(""),
         Line::from(vec![
-            Span::styled("r", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+            Span::styled("r", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(" - Retry download"),
         ]),
         Line::from(vec![
-            Span::styled("n", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+            Span::styled("n", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
             Span::raw(" - New download"),
         ]),
     ];
@@ -158,7 +158,7 @@ pub fn render_help(frame: &mut Frame, theme: &Theme) {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme.border)),
+                .border_style(Style::default().fg(theme.color)),
         )
         .wrap(Wrap { trim: false });
     frame.render_widget(context_para, content_chunks[1]);
@@ -166,14 +166,14 @@ pub fn render_help(frame: &mut Frame, theme: &Theme) {
     // Footer
     let footer = Paragraph::new(vec![Line::from(vec![
         Span::raw("Press "),
-        Span::styled("Esc", Style::default().fg(theme.warning).add_modifier(Modifier::BOLD)),
+        Span::styled("Esc", Style::default().fg(theme.color).add_modifier(Modifier::BOLD)),
         Span::raw(" to close this help screen"),
     ])])
     .alignment(Alignment::Center)
     .block(
         Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(theme.border)),
+            .border_style(Style::default().fg(theme.color)),
     );
     frame.render_widget(footer, chunks[2]);
 }
