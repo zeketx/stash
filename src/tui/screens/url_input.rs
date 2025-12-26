@@ -80,21 +80,15 @@ pub fn render_url_input(
         }
     }
 
-    // Hint text / Validation message with spinner for "Fetching..."
-    let (hint_text, hint_style) = if validation_message.contains("Fetching") {
-        // Show spinner animation when fetching
-        let spinner = get_spinner();
-        (format!("{} {}", validation_message, spinner), Style::default().fg(theme.color))
-    } else {
-        match is_valid {
-            Some(true) => (validation_message.to_string(), Style::default().fg(theme.color)),
-            Some(false) => (validation_message.to_string(), Style::default().fg(theme.color)),
-            None => ("Press Enter to continue or paste a URL to start".to_string(), Style::default().fg(theme.color)),
-        }
+    // Hint text / Validation message
+    let hint_text = match is_valid {
+        Some(true) => validation_message.to_string(),
+        Some(false) => validation_message.to_string(),
+        None => "Press Enter to continue or paste a URL to start".to_string(),
     };
 
     let hint = Paragraph::new(hint_text)
-        .style(hint_style)
+        .style(Style::default().fg(theme.color))
         .alignment(Alignment::Left);
     frame.render_widget(hint, chunks[2]);
 
@@ -150,15 +144,4 @@ pub fn render_url_input(
         .alignment(Alignment::Left)
         .style(Style::default().fg(theme.color));
     frame.render_widget(help, chunks[4]);
-}
-
-fn get_spinner() -> &'static str {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let spinners = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis();
-    let index = (now / 80) % spinners.len() as u128;
-    spinners[index as usize]
 }

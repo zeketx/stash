@@ -6,9 +6,13 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
-use std::time::{SystemTime, UNIX_EPOCH};
 
-pub fn render_fetching(frame: &mut Frame, theme: &Theme, url: &str) {
+pub fn render_fetching(
+    frame: &mut Frame,
+    theme: &Theme,
+    url: &str,
+    typing_text: String,
+) {
     let area = frame.area();
 
     let chunks = Layout::default()
@@ -40,19 +44,18 @@ pub fn render_fetching(frame: &mut Frame, theme: &Theme, url: &str) {
         .constraints([Constraint::Length(3), Constraint::Min(5)])
         .split(inner);
 
-    // Spinner animation
-    let spinner = get_spinner();
-    let spinner_text = vec![
+    // Typing animation
+    let animation_text = vec![
         Line::from(""),
         Line::from(vec![Span::styled(
-            spinner,
+            typing_text,
             Style::default().fg(theme.color).add_modifier(Modifier::BOLD),
         )]),
         Line::from(""),
     ];
 
-    let spinner_widget = Paragraph::new(spinner_text).alignment(Alignment::Center);
-    frame.render_widget(spinner_widget, content_chunks[0]);
+    let animation_widget = Paragraph::new(animation_text).alignment(Alignment::Center);
+    frame.render_widget(animation_widget, content_chunks[0]);
 
     // URL display
     let url_text = vec![
@@ -79,14 +82,4 @@ pub fn render_fetching(frame: &mut Frame, theme: &Theme, url: &str) {
     ]))
     .alignment(Alignment::Center);
     frame.render_widget(footer, chunks[2]);
-}
-
-fn get_spinner() -> &'static str {
-    let spinners = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis();
-    let index = (now / 80) % spinners.len() as u128;
-    spinners[index as usize]
 }

@@ -94,18 +94,25 @@ fn render(app: &mut App, frame: &mut ratatui::Frame) {
             validation_message,
             recent_downloads,
         } => {
+            let typing_text = if validation_message == "FETCHING" {
+                app.typing_animation.text()
+            } else {
+                validation_message.to_string()
+            };
+
             render_url_input(
                 frame,
                 &app.theme,
                 input,
                 *cursor_pos,
                 *is_valid,
-                validation_message,
+                &typing_text,
                 recent_downloads,
             );
         }
         AppState::FetchingInfo { url } => {
-            render_fetching(frame, &app.theme, url);
+            let animations = app.typing_animation.text();
+            render_fetching(frame, &app.theme, url, animations);
         }
         AppState::FormatSelection {
             video_info,
@@ -231,11 +238,13 @@ async fn handle_event(app: Arc<Mutex<App>>, event: Event) -> Result<()> {
 
                                 // Spawn fetch as background task so UI stays responsive
                                 tokio::spawn(async move {
-                                    let mut app_locked = app_clone.lock().await;
-                                    app_locked.start_fetching_info(input_clone.clone());
-                                    drop(app_locked);
+                                    {
+                                        let mut app_locked = app_clone.lock().await;
+                                        app_locked.start_fetching_info(input_clone.clone());
+                                        drop(app_locked);
+                                    }
 
-                                    fetch_video_info(&mut *app_clone.lock().await, input_clone).await;
+                                    fetch_video_info(app_clone, input_clone).await;
                                 });
                             }
                         }
@@ -378,7 +387,7 @@ async fn handle_event(app: Arc<Mutex<App>>, event: Event) -> Result<()> {
 }
 
 // Fetch real video information
-async fn fetch_video_info(app: &mut App, url: String) {
+async fn fetch_video_info(app: Arc<Mutex<App>>, url: String) {
     let config = Config::load_with_env_overrides();
     let downloader = Downloader::new(config.output_dir.clone(), config.quality.clone());
 
@@ -437,13 +446,17 @@ async fn fetch_video_info(app: &mut App, url: String) {
                 format_id: "audio".to_string(),
             });
 
-            if let AppState::FetchingInfo { url: _ } = &app.state {
-                app.show_format_selection(url.clone(), video_info, formats);
+            {
+                let mut app_locked = app.lock().await;
+                if let AppState::FetchingInfo { url: _ } = &app_locked.state {
+                    app_locked.show_format_selection(url.clone(), video_info, formats);
+                }
             }
         }
         Err(e) => {
             error!("Failed to fetch video info: {}", e);
-            app.go_to_error(
+            let mut app_locked = app.lock().await;
+            app_locked.go_to_error(
                 "Fetch Error".to_string(),
                 format!("Failed to fetch video information: {}", e),
                 vec![

@@ -1,6 +1,6 @@
 use crate::tui::screens::SettingsState;
 use crate::tui::theme::Theme;
-use crate::tui::widgets::{BlinkingCursor, CheckmarkAnimation, PulsingSelection, Spinner};
+use crate::tui::widgets::{BlinkingCursor, CheckmarkAnimation, PulsingSelection, Spinner, TypingAnimation};
 use chrono::{DateTime, Local};
 use std::path::PathBuf;
 
@@ -97,6 +97,7 @@ pub struct App {
     pub cursor: BlinkingCursor,
     pub checkmark: CheckmarkAnimation,
     pub pulsing_selection: PulsingSelection,
+    pub typing_animation: TypingAnimation,
 }
 
 impl App {
@@ -115,6 +116,7 @@ impl App {
             cursor: BlinkingCursor::new(),
             checkmark: CheckmarkAnimation::new(),
             pulsing_selection: PulsingSelection::new(),
+            typing_animation: TypingAnimation::new("Fetching video information".to_string()),
         }
     }
 
@@ -124,6 +126,7 @@ impl App {
         self.cursor.tick();
         self.checkmark.tick();
         self.pulsing_selection.tick();
+        self.typing_animation.tick();
     }
 
     pub fn quit(&mut self) {
@@ -220,8 +223,9 @@ impl App {
     }
 
     pub fn start_url_fetch(&mut self) {
+        self.typing_animation.reset();
         if let AppState::UrlInput { ref mut validation_message, .. } = self.state {
-            *validation_message = "Fetching video information...".to_string();
+            *validation_message = "FETCHING".to_string();
         }
     }
 

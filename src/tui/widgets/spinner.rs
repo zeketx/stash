@@ -227,3 +227,61 @@ impl Default for PulsingSelection {
         Self::new()
     }
 }
+
+/// Typing effect animation with progressive dots
+#[derive(Debug, Clone)]
+pub struct TypingAnimation {
+    text: String,
+    max_dots: usize,
+    current_dots: usize,
+    last_update: Instant,
+    frame_duration: Duration,
+}
+
+impl TypingAnimation {
+    pub fn new(text: String) -> Self {
+        Self {
+            text,
+            max_dots: 3,
+            current_dots: 0,
+            last_update: Instant::now(),
+            frame_duration: Duration::from_millis(300),
+        }
+    }
+
+    pub fn new_with_custom(text: String, max_dots: usize, frame_duration_ms: u64) -> Self {
+        Self {
+            text,
+            max_dots,
+            current_dots: 0,
+            last_update: Instant::now(),
+            frame_duration: Duration::from_millis(frame_duration_ms),
+        }
+    }
+
+    pub fn tick(&mut self) -> bool {
+        let now = Instant::now();
+        if now.duration_since(self.last_update) >= self.frame_duration {
+            self.current_dots = (self.current_dots + 1) % (self.max_dots + 1);
+            self.last_update = now;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn text(&self) -> String {
+        format!("{}{}", self.text, ".".repeat(self.current_dots))
+    }
+
+    pub fn reset(&mut self) {
+        self.current_dots = 0;
+        self.last_update = Instant::now();
+    }
+}
+
+impl Default for TypingAnimation {
+    fn default() -> Self {
+        Self::new("Loading".to_string())
+    }
+}
